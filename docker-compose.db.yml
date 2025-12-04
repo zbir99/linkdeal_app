@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector extension (only DB for local dev)
+  db:
+    image: ankane/pgvector:latest
+    container_name: linkdeal_postgres_local
+    environment:
+      POSTGRES_DB: linkdeal_db
+      POSTGRES_USER: linkdeal
+      POSTGRES_PASSWORD: linkdeal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkdeal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data_local:

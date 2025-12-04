@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector extension
+  db:
+    image: ankane/pgvector:latest
+    container_name: linkdeal_postgres
+    environment:
+      POSTGRES_DB: linkdeal_db
+      POSTGRES_USER: linkdeal
+      POSTGRES_PASSWORD: linkdeal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkdeal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # Django backend
+  backend:
+    build: ./backend
+    container_name: linkdeal_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://linkdeal:linkdeal@db:5432/linkdeal_db
+    depends_on:
+      db:
+        condition: service_healthy
+  
+  # React frontend
+  frontend:
+    build: ./frontend
+    container_name: linkdeal_frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
