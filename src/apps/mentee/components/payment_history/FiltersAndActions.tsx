@@ -1,6 +1,6 @@
 import { FunctionComponent, useState, useRef, useEffect, ChangeEvent } from 'react';
 
-interface FiltersAndActionsProps {
+export interface FiltersAndActionsProps {
   searchQuery: string;
   filterType: string;
   onSearchChange?: (query: string) => void;

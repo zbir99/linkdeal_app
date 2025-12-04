@@ -20,7 +20,7 @@ interface MenteesListProps {
 
 export const MenteesList: FunctionComponent<MenteesListProps> = ({ 
   searchTerm = '', 
-  filterStatus = '', 
+  filterStatus: _filterStatus = '', 
   sortBy = '',
   onClearFilters
 }) => {

@@ -1,5 +1,5 @@
 import { FunctionComponent, useState, useEffect } from 'react';
-import { Ticket } from '../../pages/Support_tickets';
+import { Ticket } from '../../pages/My_tickets';
 
 interface TicketsListProps {
   searchTerm: string;

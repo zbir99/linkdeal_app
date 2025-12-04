@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  linkdeal-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: linkdeal-frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Variables d'environnement si nécessaire
+    # environment:
+    #   - VITE_API_URL=http://api.example.com
+
+  # Service de développement (optionnel)
+  linkdeal-dev:
+    image: node:20-alpine
+    container_name: linkdeal-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    profiles:
+      - dev
+
