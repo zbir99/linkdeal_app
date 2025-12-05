@@ -613,10 +613,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support and questions:
 
-- **Email**: support@linkdeal.com
-- **Documentation**: [docs.linkdeal.com](https://docs.linkdeal.com)
-- **Discord**: [Join our community](https://discord.gg/linkdeal)
-- **Twitter**: [@LinkDealApp](https://twitter.com/LinkDealApp)
+- **Email**: contact.lynvia@linkdeal.com
+
 
 ---
 
@@ -657,6 +655,6 @@ For support and questions:
 
 ⭐ Star us on GitHub — it motivates us a lot!
 
-[Website](https://linkdeal.com) • [Documentation](https://docs.linkdeal.com) • [Support](mailto:support@linkdeal.com)
+[Website](https://lynvia.fojas.ai) 
 
 </div>
