@@ -1,0 +1,57 @@
+
+services:
+  # ========================================
+  # SERVICE FRONTEND - PRODUCTION
+  # ========================================
+  linkdeal-frontend:
+    build:
+      context: ./linkdeal_app/frontend
+      dockerfile: Dockerfile
+    container_name: linkdeal-frontend
+    ports:
+      - "3102:80"
+    restart: unless-stopped
+    networks:
+      - linkdeal-network
+    # Variables d'environnement pour le frontend
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "app=linkdeal"
+      - "service=frontend"
+
+  # ========================================
+  # SERVICE FRONTEND - DEVELOPPEMENT (optionnel)
+  # ========================================
+  linkdeal-frontend-dev:
+    image: node:20-alpine
+    container_name: linkdeal-frontend-dev
+    working_dir: /app
+    volumes:
+      - ./linkdeal_app/frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    networks:
+      - linkdeal-network
+    profiles:
+      - dev
+    labels:
+      - "app=linkdeal"
+      - "service=frontend-dev"
+
+# ========================================
+# RÉSEAUX
+# ========================================
+networks:
+  linkdeal-network:
+    driver: bridge
+    name: linkdeal-network
+
+# ========================================
+# VOLUMES (pour futures bases de données)
+# ========================================
+# volumes:
+#   linkdeal-db-data:
+#     name: linkdeal-db-data
