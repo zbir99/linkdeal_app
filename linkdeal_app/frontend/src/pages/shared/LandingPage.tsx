@@ -963,7 +963,7 @@ export const LandingPage = (): JSX.Element => {
                                 </div>
 
                                 <div className="absolute top-[468px] left-[429px] w-[198px] h-5 flex justify-center">
-                                    <Link 
+                                    <Link
                                         to="/about"
                                         className="mt-[-1.2px] w-[116px] h-5 ml-0 [font-family:'Arimo-Regular',Helvetica] font-normal text-[#99a1ae] text-sm tracking-[0] leading-5 whitespace-nowrap hover:text-purple-400 transition-colors no-underline cursor-pointer"
                                     >
@@ -1105,7 +1105,7 @@ export const LandingPage = (): JSX.Element => {
                                     Sign In
                                 </Link>
                             </div>
-                            <Link 
+                            <Link
                                 to="/about"
                                 className="text-xs text-white/60 hover:text-purple-400 transition-colors no-underline"
                             >
@@ -1181,7 +1181,7 @@ export const LandingPage = (): JSX.Element => {
                             <div className="space-y-1 text-center">
                                 <p className="text-sm text-white">About us</p>
                                 <p className="text-sm text-white/80">Phone: +79162039843</p>
-                                <p className="text-sm text-white/80">Email: info@LinkDeal.ai</p>
+                                <p className="text-sm text-white/80">Email: Contact.lynvia@gmail.com</p>
                             </div>
                             <div className="space-y-1 text-center">
                                 <p className="text-sm text-white">Contact us</p>
