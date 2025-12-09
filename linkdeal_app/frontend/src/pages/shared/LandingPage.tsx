@@ -1032,7 +1032,7 @@ export const LandingPage = (): JSX.Element => {
                     </div>
 
                     <div className="absolute top-[2030px] left-[377px] w-[237px] [font-family:'Manrope-Medium',Helvetica] font-medium text-white text-lg tracking-[0] leading-[22.5px]">
-                        Email: info@LinkDeal.ai
+                        Email: lynvia@gmail.com
                     </div>
 
                     <div className="absolute top-[1998px] left-[13px] w-[161px] [font-family:'Manrope-Medium',Helvetica] font-medium text-white text-lg tracking-[0] leading-[21.6px]">
