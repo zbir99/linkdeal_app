@@ -1,9 +1,0 @@
-export { ProfileHeader } from './ProfileHeader';
-export { ProfilePhoto } from './ProfilePhoto';
-export { BasicInformation } from './BasicInformation';
-export { Bio } from './Bio';
-export { Experience } from './Experience';
-export { SkillsExpertise } from './SkillsExpertise';
-export { Certifications } from './Certifications';
-export { CVUpload } from './CVUpload';
-export { ProfileActions } from './ProfileActions';
