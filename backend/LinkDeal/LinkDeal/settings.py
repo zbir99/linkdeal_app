@@ -199,7 +199,7 @@ EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'  # SendGrid requires 'apikey' as username (literal string)
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY', '')  # Your SendGrid API key
+EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")  # Your SendGrid API key
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@linkdeal.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL  # For error emails
 
