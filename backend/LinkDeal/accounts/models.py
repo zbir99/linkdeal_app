@@ -1,9 +1,12 @@
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.utils import timezone
+from datetime import timedelta
 import uuid
 import os
 import logging
+import secrets
 from accounts.validators import FileSizeValidator, FileExtensionValidator
 
 logger = logging.getLogger(__name__)
@@ -249,6 +252,40 @@ class MenteeProfile(models.Model):
         ]
     )
 
+    # NEW FIELDS FROM UI
+    interests = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of selected interests (e.g., ['Web Development', 'AI/ML', 'Data Science'])"
+    )
+    
+    user_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("student", "Student"),
+            ("professional", "Professional"),
+            ("entrepreneur", "Entrepreneur"),
+            ("career_changer", "Career Changer"),
+            ("job_seeker", "Job Seeker"),
+        ],
+        null=True,
+        blank=True,
+        help_text="Type of user (Student, Professional, Entrepreneur, Career Changer, Job Seeker)"
+    )
+    
+    session_frequency = models.CharField(
+        max_length=50,
+        choices=[
+            ("once_week", "Once a week"),
+            ("every_two_weeks", "Every two weeks"),
+            ("once_month", "Once a month"),
+            ("flexible", "Flexible"),
+        ],
+        null=True,
+        blank=True,
+        help_text="Preferred session frequency"
+    )
+
     status = models.CharField(
         max_length=20,
         choices=[
@@ -299,3 +336,116 @@ def delete_mentee_files(sender, instance, **kwargs):
         except Exception as e:
             # Log error but don't fail deletion
             logger.error(f"Error deleting mentee profile picture {instance.profile_picture.path}: {e}")
+
+
+# -------------------------------------------------------------------
+# 4. ACCOUNT LINKING VERIFICATION MODEL
+# -------------------------------------------------------------------
+
+class AccountLinkingVerification(models.Model):
+    """
+    Stores verification tokens for linking social accounts to existing accounts.
+    Used when a user tries to register with Google/LinkedIn but an account
+    with the same email already exists.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # The existing user's account (the one being linked TO)
+    existing_user = models.ForeignKey(
+        AppUser,
+        on_delete=models.CASCADE,
+        related_name="linking_verifications"
+    )
+    
+    # The new social account trying to register
+    new_auth0_id = models.CharField(
+        max_length=200,
+        help_text="The Auth0 ID of the new social account (e.g., google-oauth2|123)"
+    )
+    new_email = models.EmailField(
+        help_text="Email of the new social account (should match existing_user.email)"
+    )
+    
+    # Verification token
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Cryptographically secure token for verification"
+    )
+    
+    # Status
+    verified = models.BooleanField(
+        default=False,
+        help_text="Whether this verification has been completed"
+    )
+    expired = models.BooleanField(
+        default=False,
+        help_text="Whether this verification has expired"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        help_text="When this verification token expires (default: 15 minutes)"
+    )
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the verification was completed"
+    )
+    
+    # Registration data (stored temporarily until verification)
+    registration_data = models.JSONField(
+        help_text="Stores profile data (full_name, field_of_study, etc.) until verification"
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=[
+            ("mentor", "Mentor"),
+            ("mentee", "Mentee"),
+        ],
+        help_text="Role chosen during registration"
+    )
+    
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["token"]),
+            models.Index(fields=["expires_at"]),
+        ]
+    
+    def __str__(self):
+        return f"AccountLinkingVerification({self.existing_user.email} -> {self.new_auth0_id})"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate token if not provided
+        if not self.token:
+            self.token = secrets.token_urlsafe(48)  # 64 chars when URL-safe encoded
+        
+        # Auto-set expiration if not provided (15 minutes from now)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=15)
+        
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if the verification token has expired."""
+        return timezone.now() > self.expires_at
+    
+    def mark_as_expired(self):
+        """Mark this verification as expired."""
+        self.expired = True
+        self.save(update_fields=["expired"])
+    
+    def verify(self):
+        """Mark this verification as completed."""
+        if self.verified:
+            return False  # Already verified
+        if self.is_expired():
+            self.mark_as_expired()
+            return False  # Expired
+        
+        self.verified = True
+        self.verified_at = timezone.now()
+        self.save(update_fields=["verified", "verified_at"])
+        return True

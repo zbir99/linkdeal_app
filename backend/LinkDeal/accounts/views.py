@@ -47,8 +47,10 @@ class MeView(APIView):
         user = request.user
         
         # Use app_metadata as fallback for email and role if not in token
-        email = user.email or user.app_metadata.get("email")
-        role = user.role or user.app_metadata.get("role")
+        # app_metadata is always a dict (initialized in Auth0User), but add safety check
+        app_metadata = getattr(user, 'app_metadata', {}) or {}
+        email = user.email or app_metadata.get("email")
+        role = user.role or app_metadata.get("role")
 
         return Response({
             "auth0_id": user.auth0_id,
@@ -58,7 +60,7 @@ class MeView(APIView):
             "role": role,
             "roles": user.roles,
             # 'app_metadata' contains Auth0 metadata including 'role' for backward compatibility
-            "app_metadata": user.app_metadata,
+            "app_metadata": app_metadata,
             "permissions": user.permissions,
         })
 
@@ -130,6 +132,45 @@ class SocialMentorRegisterView(generics.CreateAPIView):
                 },
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+# ---------------------------------------------------------------
+# LOGOUT
+# ---------------------------------------------------------------
+
+class LogoutView(APIView):
+    """
+    POST /auth/logout/
+    Logs out the current user by clearing session data.
+    Works for all user types: mentee, mentor, admin, super_admin.
+    
+    Note: JWT tokens are stateless, so the frontend must clear the token from storage.
+    """
+    permission_classes = [IsAuthenticatedAuth0]
+
+    def post(self, request):
+        """
+        Logout the user by clearing session data.
+        Returns success response. Frontend should clear JWT token from storage.
+        """
+        # Get user info before clearing (for logging)
+        user_email = getattr(request.user, 'email', 'unknown')
+        user_role = getattr(request.user, 'role', 'unknown')
+        auth0_id = getattr(request.user, 'auth0_id', 'unknown')
+        
+        # Clear Django session if it exists
+        if hasattr(request, 'session'):
+            request.session.flush()
+        
+        logger.info(f"User logged out: {user_email} (role: {user_role}, auth0_id: {auth0_id})")
+        
+        return Response(
+            {
+                "success": True,
+                "message": "Successfully logged out. Please clear your token from client storage.",
+            },
+            status=status.HTTP_200_OK,
         )
 
 

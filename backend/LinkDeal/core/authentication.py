@@ -180,6 +180,9 @@ class Auth0JWTAuthentication(BaseAuthentication):
         """
         Create or update AppUser in local database based on Auth0 token.
         This ensures local DB stays in sync with Auth0.
+        
+        NOTE: No automatic email-based linking. Account linking must be
+        done explicitly through the registration flow.
         """
         if not auth0_user.auth0_id or not auth0_user.email:
             logger.warning("Auth0 token missing auth0_id or email, skipping sync")
@@ -190,50 +193,6 @@ class Auth0JWTAuthentication(BaseAuthentication):
         if is_db_identity and not auth0_user.email_verified:
             logger.warning("DB user %s attempted login without verified email", auth0_user.email)
             raise AuthenticationFailed("Email not verified.")
-
-        # For social logins, check if a DB identity exists but is not verified.
-        # This prevents linking social accounts to unverified DB accounts.
-        # If we cannot verify, we fail-closed to stay safe.
-        if not is_db_identity and auth0_user.email:
-            # Import lazily to avoid circular imports during module load
-            from accounts.auth0_client import Auth0Client
-            from core.exceptions import ExternalServiceError
-
-            # First check if AppUser already exists with this exact auth0_id (STEP 1 of mapping)
-            # If it does, no linking is needed, so skip the verification check
-            try:
-                existing_app_user = AppUser.objects.get(auth0_id=auth0_user.auth0_id)
-                logger.debug(
-                    "AppUser already exists with auth0_id %s, skipping DB verification check",
-                    auth0_user.auth0_id,
-                )
-            except AppUser.DoesNotExist:
-                # AppUser doesn't exist with this auth0_id, check if linking would occur
-                # and if so, verify that any existing DB identity is verified
-                try:
-                    unverified_db_auth0_id = Auth0Client.get_unverified_db_identity(email=auth0_user.email)
-                    if unverified_db_auth0_id:
-                        # Check if AppUser exists with this email and has the unverified DB auth0_id
-                        existing_app_user = AppUser.objects.filter(email=auth0_user.email).first()
-                        if existing_app_user and existing_app_user.auth0_id == unverified_db_auth0_id:
-                            logger.warning(
-                                "Social login %s attempted to link to unverified DB account %s",
-                                auth0_user.auth0_id,
-                                auth0_user.email,
-                            )
-                            raise AuthenticationFailed(
-                                "Un compte base de données non vérifié existe pour cet email. "
-                                "Veuillez vérifier votre email avant de lier ce compte social."
-                            )
-                except ExternalServiceError:
-                    # Fail-closed: if we cannot verify the DB identity status, block to stay safe
-                    logger.warning(
-                        "Failed to check for unverified DB identity; blocking login for safety (email=%s)",
-                        auth0_user.email,
-                    )
-                    raise AuthenticationFailed(
-                        "Unable to verify account status. Please retry or contact support."
-                    )
 
         # Use IdentityMappingService for consistent identity mapping
         # Note: During authentication, we don't have a "chosen_role" from registration,

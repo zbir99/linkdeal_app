@@ -21,8 +21,11 @@ class IdentityMappingService:
     
     Rules:
     1. Find by auth0_id (exact match)
-    2. Find by verified email (identity linking)
+    2. REMOVED - No automatic email-based linking (must be done explicitly during registration)
     3. Auto-create if truly new
+    
+    NOTE: Email-based linking has been removed. Account linking must
+    be done explicitly through the registration flow.
     """
 
     @staticmethod
@@ -58,7 +61,10 @@ class IdentityMappingService:
         chosen_role: Optional[str] = None,
     ) -> Tuple[AppUser, bool]:
         """
-        Map an Auth0 identity to an AppUser using the 3-step logic.
+        Map an Auth0 identity to an AppUser using the 2-step logic.
+        
+        NOTE: Email-based linking has been removed. Account linking must
+        be done explicitly through the registration flow.
         
         :param auth0_user: Auth0User instance from token
         :param chosen_role: Role chosen by user during registration ("mentor" or "mentee")
@@ -84,90 +90,9 @@ class IdentityMappingService:
             pass
         
         # ============================================================
-        # STEP 2: Find by verified email (identity linking)
+        # STEP 2: REMOVED - No automatic email-based linking
+        # Account linking must be done explicitly during registration
         # ============================================================
-        if email and email_verified:
-            try:
-                existing_user = AppUser.objects.get(email=email)
-                # Link this auth0_id to the existing AppUser
-                # Update auth0_id if it's different (same human, new identity)
-                if existing_user.auth0_id != auth0_id:
-                    # Security check: If existing AppUser has a DB identity (auth0|),
-                    # verify that the DB identity is verified before allowing social linking
-                    is_social_identity = not auth0_id.startswith("auth0|")
-                    existing_is_db = existing_user.auth0_id and existing_user.auth0_id.startswith("auth0|")
-                    
-                    if is_social_identity and existing_is_db:
-                        # Import locally to avoid circular dependency
-                        from accounts.auth0_client import Auth0Client
-                        from core.exceptions import ExternalServiceError
-                        
-                        try:
-                            unverified_db_auth0_id = Auth0Client.get_unverified_db_identity(email=email)
-                            if unverified_db_auth0_id == existing_user.auth0_id:
-                                logger.warning(
-                                    f"Blocked social identity {auth0_id} from linking to "
-                                    f"unverified DB account {existing_user.auth0_id} (email: {email})"
-                                )
-                                from rest_framework.exceptions import AuthenticationFailed
-                                raise AuthenticationFailed(
-                                    "Un compte base de données non vérifié existe pour cet email. "
-                                    "Veuillez vérifier votre email avant de lier ce compte social."
-                                )
-                        except ExternalServiceError:
-                            # If Auth0 check fails, log but allow linking (fail open for availability)
-                            logger.warning(
-                                f"Failed to verify DB identity status for {email}, "
-                                f"allowing social linking to proceed"
-                            )
-                    
-                    logger.info(
-                        f"Linking new identity {auth0_id} to existing AppUser {existing_user.id} "
-                        f"(email: {email})"
-                    )
-                    # Update auth0_id to the new one (latest identity wins)
-                    existing_user.auth0_id = auth0_id
-                    existing_user.save(update_fields=["auth0_id"])
-                return existing_user, False
-            except AppUser.DoesNotExist:
-                pass
-            except AppUser.MultipleObjectsReturned:
-                # Edge case: multiple users with same email (shouldn't happen with unique constraint)
-                logger.warning(f"Multiple AppUsers found for email {email}, using first one")
-                existing_user = AppUser.objects.filter(email=email).first()
-                if existing_user.auth0_id != auth0_id:
-                    # Security check: If existing AppUser has a DB identity (auth0|),
-                    # verify that the DB identity is verified before allowing social linking
-                    is_social_identity = not auth0_id.startswith("auth0|")
-                    existing_is_db = existing_user.auth0_id and existing_user.auth0_id.startswith("auth0|")
-                    
-                    if is_social_identity and existing_is_db:
-                        # Import locally to avoid circular dependency
-                        from accounts.auth0_client import Auth0Client
-                        from core.exceptions import ExternalServiceError
-                        
-                        try:
-                            unverified_db_auth0_id = Auth0Client.get_unverified_db_identity(email=email)
-                            if unverified_db_auth0_id == existing_user.auth0_id:
-                                logger.warning(
-                                    f"Blocked social identity {auth0_id} from linking to "
-                                    f"unverified DB account {existing_user.auth0_id} (email: {email})"
-                                )
-                                from rest_framework.exceptions import AuthenticationFailed
-                                raise AuthenticationFailed(
-                                    "Un compte base de données non vérifié existe pour cet email. "
-                                    "Veuillez vérifier votre email avant de lier ce compte social."
-                                )
-                        except ExternalServiceError:
-                            # If Auth0 check fails, log but allow linking (fail open for availability)
-                            logger.warning(
-                                f"Failed to verify DB identity status for {email}, "
-                                f"allowing social linking to proceed"
-                            )
-                    
-                    existing_user.auth0_id = auth0_id
-                    existing_user.save(update_fields=["auth0_id"])
-                return existing_user, False
         
         # ============================================================
         # STEP 3: Auto-create AppUser (first time ever in LinkDeal)

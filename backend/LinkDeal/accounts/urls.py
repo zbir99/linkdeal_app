@@ -7,6 +7,7 @@ from accounts.views import (
     SocialMenteeRegisterView,
     SocialMentorRegisterView,
     MeView,
+    LogoutView,
     PasswordResetRequestView,
 )
 
@@ -26,13 +27,26 @@ from accounts.admin_views import (
     SyncFromAuth0View,
 )
 
+from accounts.linking_views import (
+    CheckEmailView,
+    RequestLinkingView,
+    VerifyLinkingView,
+)
+
 urlpatterns = [
     # Public auth
     path("register/mentee/", MenteeRegisterView.as_view(), name="register-mentee"),
     path("register/mentor/", MentorRegisterView.as_view(), name="register-mentor"),
     path("register/mentee/social/", SocialMenteeRegisterView.as_view(), name="register-mentee-social"),
     path("register/mentor/social/", SocialMentorRegisterView.as_view(), name="register-mentor-social"),
+    
+    # Account linking routes
+    path("register/check-email/", CheckEmailView.as_view(), name="check-email"),
+    path("register/request-linking/", RequestLinkingView.as_view(), name="request-linking"),
+    path("register/verify-linking/<str:token>/", VerifyLinkingView.as_view(), name="verify-linking"),
+    
     path("me/", MeView.as_view(), name="me"),
+    path("logout/", LogoutView.as_view(), name="logout"),
     path("password/reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path("reset-password/", PasswordResetRequestView.as_view(), name="password-reset-alias"),
 

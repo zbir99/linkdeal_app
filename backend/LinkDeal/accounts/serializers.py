@@ -86,6 +86,35 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
     field_of_study = serializers.CharField(max_length=255)
     country = serializers.CharField(max_length=100)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
+    
+    # NEW FIELDS
+    interests = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of selected interests"
+    )
+    user_type = serializers.ChoiceField(
+        choices=[
+            ("student", "Student"),
+            ("professional", "Professional"),
+            ("entrepreneur", "Entrepreneur"),
+            ("career_changer", "Career Changer"),
+            ("job_seeker", "Job Seeker"),
+        ],
+        required=False,
+        allow_null=True
+    )
+    session_frequency = serializers.ChoiceField(
+        choices=[
+            ("once_week", "Once a week"),
+            ("every_two_weeks", "Every two weeks"),
+            ("once_month", "Once a month"),
+            ("flexible", "Flexible"),
+        ],
+        required=False,
+        allow_null=True
+    )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -151,6 +180,10 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
                 "field_of_study": validated_data["field_of_study"],
                 "country": validated_data["country"],
                 "profile_picture": validated_data.get("profile_picture"),
+                # NEW FIELDS
+                "interests": validated_data.get("interests", []),
+                "user_type": validated_data.get("user_type"),
+                "session_frequency": validated_data.get("session_frequency"),
             }
         )
         
@@ -162,6 +195,10 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
             profile.country = validated_data["country"]
             if validated_data.get("profile_picture"):
                 profile.profile_picture = validated_data["profile_picture"]
+            # NEW FIELDS
+            profile.interests = validated_data.get("interests", profile.interests)
+            profile.user_type = validated_data.get("user_type", profile.user_type)
+            profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
             profile.save()
 
         return profile
@@ -184,6 +221,35 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
     country = serializers.CharField(max_length=100)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
     link_consent = serializers.BooleanField(required=False, default=False)
+    
+    # NEW FIELDS
+    interests = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of selected interests"
+    )
+    user_type = serializers.ChoiceField(
+        choices=[
+            ("student", "Student"),
+            ("professional", "Professional"),
+            ("entrepreneur", "Entrepreneur"),
+            ("career_changer", "Career Changer"),
+            ("job_seeker", "Job Seeker"),
+        ],
+        required=False,
+        allow_null=True
+    )
+    session_frequency = serializers.ChoiceField(
+        choices=[
+            ("once_week", "Once a week"),
+            ("every_two_weeks", "Every two weeks"),
+            ("once_month", "Once a month"),
+            ("flexible", "Flexible"),
+        ],
+        required=False,
+        allow_null=True
+    )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -203,35 +269,24 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                 "Account is not allowed to register. Please contact support."
             )
 
-        # If a DB identity exists but is not verified, block linking until email is verified.
-        link_consent = validated_data.get("link_consent", False)
-        unverified_db_auth0_id = Auth0Client.get_unverified_db_identity(email=email)
-        if unverified_db_auth0_id:
-            if link_consent:
-                try:
-                    Auth0Client.send_verification_email(auth0_user_id=unverified_db_auth0_id)
-                except ExternalServiceError:
-                    raise
-                raise exceptions.ValidationError(
-                    "Un compte base de données existe mais l'email n'est pas vérifié. "
-                    "Un email de vérification vient d'être envoyé. Vérifiez puis réessayez le lien."
-                )
-            else:
-                raise exceptions.ValidationError(
-                    "Un compte base de données non vérifié existe déjà pour cet email. "
-                    "Veuillez vérifier votre email avant de lier ce compte social."
-                )
+        # NEW: Check if email already exists - FAIL registration if it does
+        existing_user = AppUser.objects.filter(email=email).first()
+        if existing_user:
+            raise exceptions.ValidationError(
+                {
+                    "email": "An account with this email already exists. "
+                             "Please use the account linking flow to connect your social account.",
+                    "requires_linking": True,
+                }
+            )
 
-        # Map identity to AppUser using the service (respects chosen role: mentee)
-        app_user, was_created = IdentityMappingService.map_identity_to_app_user(
-            auth0_user=auth0_user,
-            chosen_role="mentee",  # Always mentee for this serializer
+        # Create new AppUser (no automatic linking)
+        app_user = AppUser.objects.create(
+            auth0_id=auth0_id,
+            email=email,
+            role="mentee",
+            status="active",
         )
-        
-        # Ensure role is correct (in case of identity linking)
-        if app_user.role != "mentee":
-            app_user.role = "mentee"
-            app_user.save(update_fields=["role"])
 
         # Update Auth0 app_metadata with role + approval_status
         try:
@@ -265,6 +320,10 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                 "field_of_study": validated_data["field_of_study"],
                 "country": validated_data["country"],
                 "profile_picture": validated_data.get("profile_picture"),
+                # NEW FIELDS
+                "interests": validated_data.get("interests", []),
+                "user_type": validated_data.get("user_type"),
+                "session_frequency": validated_data.get("session_frequency"),
             }
         )
         
@@ -276,6 +335,10 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
             profile.country = validated_data["country"]
             if validated_data.get("profile_picture"):
                 profile.profile_picture = validated_data["profile_picture"]
+            # NEW FIELDS
+            profile.interests = validated_data.get("interests", profile.interests)
+            profile.user_type = validated_data.get("user_type", profile.user_type)
+            profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
             profile.save()
 
         return profile
@@ -434,35 +497,24 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                 "Account is not allowed to register. Please contact support."
             )
 
-        # If a DB identity exists but is not verified, block linking until email is verified.
-        link_consent = validated_data.get("link_consent", False)
-        unverified_db_auth0_id = Auth0Client.get_unverified_db_identity(email=email)
-        if unverified_db_auth0_id:
-            if link_consent:
-                try:
-                    Auth0Client.send_verification_email(auth0_user_id=unverified_db_auth0_id)
-                except ExternalServiceError:
-                    raise
-                raise exceptions.ValidationError(
-                    "Un compte base de données existe mais l'email n'est pas vérifié. "
-                    "Un email de vérification vient d'être envoyé. Vérifiez puis réessayez le lien."
-                )
-            else:
-                raise exceptions.ValidationError(
-                    "Un compte base de données non vérifié existe déjà pour cet email. "
-                    "Veuillez vérifier votre email avant de lier ce compte social."
-                )
+        # NEW: Check if email already exists - FAIL registration if it does
+        existing_user = AppUser.objects.filter(email=email).first()
+        if existing_user:
+            raise exceptions.ValidationError(
+                {
+                    "email": "An account with this email already exists. "
+                             "Please use the account linking flow to connect your social account.",
+                    "requires_linking": True,
+                }
+            )
 
-        # Map identity to AppUser using the service (respects chosen role: mentor)
-        app_user, was_created = IdentityMappingService.map_identity_to_app_user(
-            auth0_user=auth0_user,
-            chosen_role="mentor",  # Always mentor for this serializer
+        # Create new AppUser (no automatic linking)
+        app_user = AppUser.objects.create(
+            auth0_id=auth0_id,
+            email=email,
+            role="mentor",
+            status="active",
         )
-        
-        # Ensure role is correct (in case of identity linking)
-        if app_user.role != "mentor":
-            app_user.role = "mentor"
-            app_user.save(update_fields=["role"])
 
         # Update Auth0 app_metadata with role + approval_status (pending)
         try:
