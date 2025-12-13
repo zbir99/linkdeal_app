@@ -1,10 +1,10 @@
 # accounts/services.py
 """
-Enterprise-grade identity mapping service for Auth0 → AppUser.
-Implements the 3-step mapping logic: auth0_id → verified email → auto-create.
+Identity mapping service for Auth0 → AppUser.
+Finds AppUser by auth0_id. No auto-creation - AppUser must be created explicitly during registration.
 """
 import logging
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from django.db import transaction
 from django.conf import settings
 from accounts.models import AppUser
@@ -17,15 +17,14 @@ logger = logging.getLogger(__name__)
 
 class IdentityMappingService:
     """
-    Central service for mapping Auth0 identities to AppUser instances.
+    Central service for finding AppUser by Auth0 identity.
     
     Rules:
     1. Find by auth0_id (exact match)
-    2. REMOVED - No automatic email-based linking (must be done explicitly during registration)
-    3. Auto-create if truly new
+    2. Raises ValueError if not found (no auto-creation)
     
-    NOTE: Email-based linking has been removed. Account linking must
-    be done explicitly through the registration flow.
+    NOTE: AppUser must be created explicitly during registration.
+    Account linking must be done explicitly through the registration flow.
     """
 
     @staticmethod
@@ -54,75 +53,34 @@ class IdentityMappingService:
         return True
 
     @classmethod
-    @transaction.atomic
     def map_identity_to_app_user(
         cls,
         auth0_user: "Auth0User",
         chosen_role: Optional[str] = None,
-    ) -> Tuple[AppUser, bool]:
+    ) -> AppUser:
         """
-        Map an Auth0 identity to an AppUser using the 2-step logic.
+        Find AppUser by auth0_id. Raises ValueError if not found.
         
-        NOTE: Email-based linking has been removed. Account linking must
-        be done explicitly through the registration flow.
+        NOTE: No auto-creation. AppUser must be created explicitly during registration.
         
         :param auth0_user: Auth0User instance from token
-        :param chosen_role: Role chosen by user during registration ("mentor" or "mentee")
-        :return: Tuple of (AppUser instance, was_created: bool)
+        :param chosen_role: Not used, kept for backward compatibility
+        :return: AppUser instance
+        :raises ValueError: If AppUser not found
         """
         auth0_id = auth0_user.auth0_id
-        email = auth0_user.email
         
         if not auth0_id:
             raise ValueError("auth0_id is required for identity mapping")
         
-        # Extract email_verified from payload
-        email_verified = cls.extract_email_verified(auth0_user._payload)
-        
-        # ============================================================
-        # STEP 1: Find by auth0_id (exact match)
-        # ============================================================
+        # Find by auth0_id (exact match)
         try:
             app_user = AppUser.objects.get(auth0_id=auth0_id)
             logger.info(f"Found AppUser by auth0_id: {auth0_id} (email: {app_user.email})")
-            return app_user, False
+            return app_user
         except AppUser.DoesNotExist:
-            pass
-        
-        # ============================================================
-        # STEP 2: REMOVED - No automatic email-based linking
-        # Account linking must be done explicitly during registration
-        # ============================================================
-        
-        # ============================================================
-        # STEP 3: Auto-create AppUser (first time ever in LinkDeal)
-        # ============================================================
-        if not email:
-            raise ValueError("Email is required to create a new AppUser")
-        
-        # Determine role: use chosen_role if provided, otherwise try to infer from token
-        role = chosen_role
-        if not role:
-            # Try to get from token
-            role = auth0_user.role or auth0_user.app_metadata.get("role")
-        
-        # Validate role
-        valid_roles = ["super_admin", "admin", "mentor", "mentee"]
-        if role not in valid_roles:
-            # Default to mentee if unclear
-            logger.warning(f"Invalid or missing role '{role}', defaulting to 'mentee'")
-            role = "mentee"
-        
-        app_user = AppUser.objects.create(
-            auth0_id=auth0_id,
-            email=email,
-            role=role,
-            status="active",
-        )
-        
-        logger.info(
-            f"Auto-created AppUser for {email} (auth0_id: {auth0_id}, role: {role})"
-        )
-        
-        return app_user, True
+            raise ValueError(
+                f"AppUser not found for auth0_id: {auth0_id}. "
+                "Registration is required before login."
+            )
 

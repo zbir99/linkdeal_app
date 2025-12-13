@@ -178,11 +178,8 @@ class Auth0JWTAuthentication(BaseAuthentication):
 
     def _sync_app_user(self, auth0_user: Auth0User):
         """
-        Create or update AppUser in local database based on Auth0 token.
-        This ensures local DB stays in sync with Auth0.
-        
-        NOTE: No automatic email-based linking. Account linking must be
-        done explicitly through the registration flow.
+        Sync AppUser in local database based on Auth0 token.
+        Registration is required before login - no auto-creation during authentication.
         """
         if not auth0_user.auth0_id or not auth0_user.email:
             logger.warning("Auth0 token missing auth0_id or email, skipping sync")
@@ -194,14 +191,13 @@ class Auth0JWTAuthentication(BaseAuthentication):
             logger.warning("DB user %s attempted login without verified email", auth0_user.email)
             raise AuthenticationFailed("Email not verified.")
 
-        # Use IdentityMappingService for consistent identity mapping
-        # Note: During authentication, we don't have a "chosen_role" from registration,
-        # so we infer it from the token (which should have been set during registration)
+        # Use IdentityMappingService - only finds, never creates
+        # User must register first via registration endpoint
         try:
             with transaction.atomic():
-                app_user, created = IdentityMappingService.map_identity_to_app_user(
+                app_user = IdentityMappingService.map_identity_to_app_user(
                     auth0_user=auth0_user,
-                    chosen_role=None,  # Infer from token during auth
+                    chosen_role=None,  # Not used anymore
                 )
 
                 # Update email if it changed in Auth0 (identity linking case)
@@ -210,19 +206,80 @@ class Auth0JWTAuthentication(BaseAuthentication):
                     app_user.save(update_fields=["email"])
                     logger.info(f"Updated AppUser email for {auth0_user.auth0_id}")
 
-                if created:
-                    # Check if this is an admin/super_admin created outside the invite flow
-                    if app_user.role in ["admin", "super_admin"]:
+                # ----------------------------------------------------
+                # Enforce role requirement - user must have a role
+                # ----------------------------------------------------
+                # Check if user has a role in either token or DB
+                has_token_role = bool(auth0_user.role) or bool(auth0_user.roles)
+                has_db_role = bool(app_user.role)
+                
+                if not has_token_role and not has_db_role:
+                    logger.warning(
+                        f"User {auth0_user.email} ({auth0_user.auth0_id}) attempted login without a role"
+                    )
+                    raise AuthenticationFailed(
+                        "User account has no role assigned. Please contact support."
+                    )
+                
+                # If token has role but DB doesn't, update DB (sync from Auth0)
+                if has_token_role and not has_db_role:
+                    # Use the primary role from token, or extract from roles array
+                    role_to_sync = auth0_user.role
+                    if not role_to_sync and auth0_user.roles:
+                        # Extract primary role from roles array (priority: super_admin > admin > mentor > mentee)
+                        if "super_admin" in auth0_user.roles:
+                            role_to_sync = "super_admin"
+                        elif "admin" in auth0_user.roles:
+                            role_to_sync = "admin"
+                        elif "mentor" in auth0_user.roles:
+                            role_to_sync = "mentor"
+                        elif "mentee" in auth0_user.roles:
+                            role_to_sync = "mentee"
+                        else:
+                            # Use first role as fallback
+                            role_to_sync = auth0_user.roles[0] if auth0_user.roles else None
+                    
+                    if role_to_sync:
+                        # Validate role is in allowed choices before saving
+                        valid_roles = ["super_admin", "admin", "mentor", "mentee"]
+                        if role_to_sync not in valid_roles:
+                            logger.warning(
+                                f"Invalid role '{role_to_sync}' from token for {auth0_user.auth0_id}. "
+                                f"Valid roles: {valid_roles}"
+                            )
+                            # If role is invalid, block authentication
+                            raise AuthenticationFailed(
+                                f"Invalid role assigned to user account. Please contact support."
+                            )
+                        
+                        app_user.role = role_to_sync
+                        app_user.save(update_fields=["role"])
                         logger.info(
-                            f"Auto-created AppUser for {auth0_user.email} (role: {app_user.role}) "
-                            f"- user was created directly in Auth0, not via invite flow"
+                            f"Updated AppUser role for {auth0_user.auth0_id} from token: {role_to_sync}"
                         )
                     else:
-                        logger.info(f"Auto-created AppUser for {auth0_user.email} (role: {app_user.role})")
+                        # This should not happen if has_token_role is True, but handle edge case
+                        logger.error(
+                            f"Failed to extract valid role from token for {auth0_user.auth0_id}. "
+                            f"auth0_user.role={auth0_user.role}, auth0_user.roles={auth0_user.roles}"
+                        )
+                        raise AuthenticationFailed(
+                            "Unable to determine user role from authentication token. Please contact support."
+                        )
 
                 # ----------------------------------------------------
                 # Enforce status/ban using local DB (identity-agnostic)
                 # ----------------------------------------------------
+                # Safety check: ensure app_user.role is set after validation/sync
+                if not app_user.role:
+                    logger.error(
+                        f"AppUser {app_user.email} ({app_user.auth0_id}) has no role after validation/sync. "
+                        f"This should not happen."
+                    )
+                    raise AuthenticationFailed(
+                        "User account role is missing. Please contact support."
+                    )
+                
                 if app_user.role == "mentor":
                     try:
                         mentor = MentorProfile.objects.select_related("user").get(user=app_user)
@@ -246,15 +303,25 @@ class Auth0JWTAuthentication(BaseAuthentication):
                             logger.warning("Mentee %s is banned (DB check)", app_user.email)
                             raise AuthenticationFailed("Mentee account is banned.")
                     except MenteeProfile.DoesNotExist:
-                        # Allow social registration to create the profile; block only at post-registration flows
-                        logger.warning("Mentee profile missing for %s; allowing auth to proceed for registration", app_user.email)
+                        # Block authentication - profile should exist after registration
+                        logger.warning("Mentee profile missing for %s", app_user.email)
+                        raise AuthenticationFailed("Mentee profile not found. Please complete registration first.")
 
+        except ValueError as e:
+            # AppUser not found - registration required
+            logger.info(f"AppUser not found for {auth0_user.email}: {e}")
+            raise AuthenticationFailed(
+                "Account not found. Please complete registration first."
+            )
         except AuthenticationFailed:
             # Propagate auth failures to block login
             raise
         except Exception as e:
-            # Don't fail authentication if sync fails, but log it
+            # Fail authentication if sync fails - AppUser must exist for proper authorization
             logger.error(f"Failed to sync AppUser for {auth0_user.email}: {e}", exc_info=True)
+            raise AuthenticationFailed(
+                "Failed to sync user account. Please contact support."
+            )
 
     def _verify_token(self, token: str) -> dict:
         try:

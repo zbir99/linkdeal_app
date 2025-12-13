@@ -24,7 +24,6 @@ from accounts.admin_views import (
     UnbanMenteeView,
     AdminInviteView,
     DeleteUserView,
-    SyncFromAuth0View,
 )
 
 from accounts.linking_views import (
@@ -67,7 +66,6 @@ urlpatterns = [
     # Super admin - admin invitation
     path("admin/admins/", AdminInviteView.as_view(), name="admin-invite"),
     
-    # Super admin - user deletion and sync
+    # Super admin - user deletion
     path("admin/users/<uuid:pk>/", DeleteUserView.as_view(), name="delete-user"),
-    path("admin/users/sync-from-auth0/", SyncFromAuth0View.as_view(), name="sync-from-auth0"),
 ]

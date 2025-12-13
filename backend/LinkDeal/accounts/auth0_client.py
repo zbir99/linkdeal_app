@@ -517,3 +517,54 @@ class Auth0Client:
         
         logger.info(f"Successfully linked {secondary_user_id} to {primary_user_id}")
         return resp.json()
+
+    @classmethod
+    def list_users(
+        cls,
+        connection: Optional[str] = None,
+        per_page: int = 100,
+        page: int = 0,
+        include_totals: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        List users from Auth0 Management API.
+        
+        :param connection: Filter by connection name (e.g., "google-oauth2", "linkedin")
+        :param per_page: Number of results per page (max 100)
+        :param page: Page number (0-indexed)
+        :param include_totals: Include total count in response
+        :return: Dict with 'users' list and optionally 'total' count (if include_totals=True)
+        :raises ExternalServiceError: If the request fails
+        """
+        url = f"https://{settings.AUTH0_DOMAIN}/api/v2/users"
+        
+        params = {
+            "per_page": min(per_page, 100),  # Auth0 max is 100
+            "page": page,
+        }
+        
+        if include_totals:
+            params["include_totals"] = "true"
+        
+        if connection:
+            # Auth0 uses 'q' parameter for Lucene query syntax
+            # Filter by connection using the identities array
+            params["q"] = f'identities.connection:"{connection}"'
+        
+        try:
+            resp = requests.get(url, params=params, headers=cls._headers(), timeout=10)
+        except requests.RequestException as exc:
+            logger.exception("Error calling Auth0 list_users")
+            raise ExternalServiceError("Could not contact Auth0 to list users") from exc
+        
+        if not resp.ok:
+            logger.error("Auth0 list_users error: %s %s", resp.status_code, resp.text)
+            raise ExternalServiceError(f"Auth0 failed to list users: HTTP {resp.status_code}")
+        
+        data = resp.json()
+        
+        # Auth0 returns list directly if include_totals=False, or dict with 'users' and 'total' if include_totals=True
+        if isinstance(data, list):
+            return {"users": data, "total": len(data)}
+        
+        return data

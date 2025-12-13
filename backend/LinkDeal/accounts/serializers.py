@@ -1,7 +1,7 @@
 import re
 import logging
 from rest_framework import serializers
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
@@ -151,7 +151,7 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
                 # Log but don't fail registration if role assignment fails
                 logger.warning(f"Failed to assign RBAC role to mentee {email}, but user was created")
 
-        # 2) Map identity to AppUser using the service (respects chosen role)
+        # 2) Find or create AppUser explicitly
         # Create a temporary Auth0User-like object for the mapping service
         from core.authentication import Auth0User
         temp_auth0_user = Auth0User({
@@ -161,45 +161,78 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
             "email_verified": False,  # Will be set to true after user verifies email
         })
         
-        app_user, _ = IdentityMappingService.map_identity_to_app_user(
-            auth0_user=temp_auth0_user,
-            chosen_role="mentee",  # Always mentee for this serializer
-        )
-        
-        # Ensure role is correct (in case of identity linking)
-        if app_user.role != "mentee":
-            app_user.role = "mentee"
-            app_user.save(update_fields=["role"])
+        # Try to find existing AppUser (handles edge case where auth0_id already exists
+        # due to race condition or identity linking scenario)
+        try:
+            app_user = IdentityMappingService.map_identity_to_app_user(
+                auth0_user=temp_auth0_user,
+                chosen_role="mentee",
+            )
+            # AppUser already exists (identity linking or race condition case)
+            # Ensure role is correct
+            if app_user.role != "mentee":
+                app_user.role = "mentee"
+                app_user.save(update_fields=["role"])
+        except ValueError:
+            # AppUser doesn't exist - create it explicitly
+            try:
+                app_user = AppUser.objects.create(
+                    auth0_id=auth0_user["user_id"],
+                    email=email,
+                    role="mentee",
+                    status="active",
+                )
+            except IntegrityError as e:
+                # Database constraint violation (duplicate email or auth0_id)
+                # Clean up Auth0 user since DB operation failed
+                logger.error(f"Failed to create AppUser for {email}: {e}. Cleaning up Auth0 user.")
+                try:
+                    Auth0Client.delete_user(auth0_user["user_id"], ignore_not_found=True)
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup Auth0 user {auth0_user['user_id']}: {cleanup_error}")
+                
+                # Re-raise as validation error
+                raise serializers.ValidationError(
+                    {"email": "An account with this email or identifier already exists. Please try again."}
+                )
 
         # 3) Create or update MenteeProfile
-        profile, created = MenteeProfile.objects.get_or_create(
-            user=app_user,
-            defaults={
-                "full_name": validated_data["full_name"],
-                "email": email,
-                "field_of_study": validated_data["field_of_study"],
-                "country": validated_data["country"],
-                "profile_picture": validated_data.get("profile_picture"),
+        # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
+        # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        try:
+            profile, created = MenteeProfile.objects.get_or_create(
+                user=app_user,
+                defaults={
+                    "full_name": validated_data["full_name"],
+                    "email": email,
+                    "field_of_study": validated_data["field_of_study"],
+                    "country": validated_data["country"],
+                    "profile_picture": validated_data.get("profile_picture"),
+                    # NEW FIELDS
+                    "interests": validated_data.get("interests", []),
+                    "user_type": validated_data.get("user_type"),
+                    "session_frequency": validated_data.get("session_frequency"),
+                }
+            )
+            
+            if not created:
+                # Update existing profile
+                profile.full_name = validated_data["full_name"]
+                profile.email = email
+                profile.field_of_study = validated_data["field_of_study"]
+                profile.country = validated_data["country"]
+                if validated_data.get("profile_picture"):
+                    profile.profile_picture = validated_data["profile_picture"]
                 # NEW FIELDS
-                "interests": validated_data.get("interests", []),
-                "user_type": validated_data.get("user_type"),
-                "session_frequency": validated_data.get("session_frequency"),
-            }
-        )
-        
-        if not created:
-            # Update existing profile
-            profile.full_name = validated_data["full_name"]
-            profile.email = email
-            profile.field_of_study = validated_data["field_of_study"]
-            profile.country = validated_data["country"]
-            if validated_data.get("profile_picture"):
-                profile.profile_picture = validated_data["profile_picture"]
-            # NEW FIELDS
-            profile.interests = validated_data.get("interests", profile.interests)
-            profile.user_type = validated_data.get("user_type", profile.user_type)
-            profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
-            profile.save()
+                profile.interests = validated_data.get("interests", profile.interests)
+                profile.user_type = validated_data.get("user_type", profile.user_type)
+                profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
+                profile.save()
+        except Exception as e:
+            # Profile creation/update failed - transaction will rollback AppUser
+            # Log error for monitoring
+            logger.error(f"Failed to create/update MenteeProfile for {email}: {e}", exc_info=True)
+            raise
 
         return profile
 
@@ -281,12 +314,20 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
             )
 
         # Create new AppUser (no automatic linking)
-        app_user = AppUser.objects.create(
-            auth0_id=auth0_id,
-            email=email,
-            role="mentee",
-            status="active",
-        )
+        try:
+            app_user = AppUser.objects.create(
+                auth0_id=auth0_id,
+                email=email,
+                role="mentee",
+                status="active",
+            )
+        except IntegrityError as e:
+            # Database constraint violation (duplicate email or auth0_id)
+            # This should not happen if email check above worked, but handle race conditions
+            logger.error(f"Failed to create AppUser for {email}: {e}. Possible race condition.")
+            raise serializers.ValidationError(
+                {"email": "An account with this email or identifier already exists. Please try again."}
+            )
 
         # Update Auth0 app_metadata with role + approval_status
         try:
@@ -312,34 +353,42 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                 logger.warning("Failed to assign RBAC role to social mentee %s", email)
 
         # Create or update MenteeProfile
-        profile, profile_created = MenteeProfile.objects.get_or_create(
-            user=app_user,
-            defaults={
-                "full_name": validated_data["full_name"],
-                "email": email,
-                "field_of_study": validated_data["field_of_study"],
-                "country": validated_data["country"],
-                "profile_picture": validated_data.get("profile_picture"),
+        # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
+        # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        try:
+            profile, profile_created = MenteeProfile.objects.get_or_create(
+                user=app_user,
+                defaults={
+                    "full_name": validated_data["full_name"],
+                    "email": email,
+                    "field_of_study": validated_data["field_of_study"],
+                    "country": validated_data["country"],
+                    "profile_picture": validated_data.get("profile_picture"),
+                    # NEW FIELDS
+                    "interests": validated_data.get("interests", []),
+                    "user_type": validated_data.get("user_type"),
+                    "session_frequency": validated_data.get("session_frequency"),
+                }
+            )
+            
+            if not profile_created:
+                # Update existing profile
+                profile.full_name = validated_data["full_name"]
+                profile.email = email
+                profile.field_of_study = validated_data["field_of_study"]
+                profile.country = validated_data["country"]
+                if validated_data.get("profile_picture"):
+                    profile.profile_picture = validated_data["profile_picture"]
                 # NEW FIELDS
-                "interests": validated_data.get("interests", []),
-                "user_type": validated_data.get("user_type"),
-                "session_frequency": validated_data.get("session_frequency"),
-            }
-        )
-        
-        if not profile_created:
-            # Update existing profile
-            profile.full_name = validated_data["full_name"]
-            profile.email = email
-            profile.field_of_study = validated_data["field_of_study"]
-            profile.country = validated_data["country"]
-            if validated_data.get("profile_picture"):
-                profile.profile_picture = validated_data["profile_picture"]
-            # NEW FIELDS
-            profile.interests = validated_data.get("interests", profile.interests)
-            profile.user_type = validated_data.get("user_type", profile.user_type)
-            profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
-            profile.save()
+                profile.interests = validated_data.get("interests", profile.interests)
+                profile.user_type = validated_data.get("user_type", profile.user_type)
+                profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
+                profile.save()
+        except Exception as e:
+            # Profile creation/update failed - transaction will rollback AppUser
+            # Log error for monitoring
+            logger.error(f"Failed to create/update MenteeProfile for {email}: {e}", exc_info=True)
+            raise ExternalServiceError("Failed to create mentee profile. Please try again.")
 
         return profile
 
@@ -399,7 +448,7 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
                 # Log but don't fail registration if role assignment fails
                 logger.warning(f"Failed to assign RBAC role to mentor {email}, but user was created")
 
-        # 2) Map identity to AppUser using the service (respects chosen role)
+        # 2) Find or create AppUser explicitly
         from core.authentication import Auth0User
         temp_auth0_user = Auth0User({
             "sub": auth0_user["user_id"],
@@ -408,52 +457,85 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
             "email_verified": False,  # Will be set to true after user verifies email
         })
         
-        app_user, _ = IdentityMappingService.map_identity_to_app_user(
-            auth0_user=temp_auth0_user,
-            chosen_role="mentor",  # Always mentor for this serializer
-        )
-        
-        # Ensure role is correct (in case of identity linking)
-        if app_user.role != "mentor":
-            app_user.role = "mentor"
-            app_user.save(update_fields=["role"])
+        # Try to find existing AppUser (handles edge case where auth0_id already exists
+        # due to race condition or identity linking scenario)
+        try:
+            app_user = IdentityMappingService.map_identity_to_app_user(
+                auth0_user=temp_auth0_user,
+                chosen_role="mentor",
+            )
+            # AppUser already exists (identity linking or race condition case)
+            # Ensure role is correct
+            if app_user.role != "mentor":
+                app_user.role = "mentor"
+                app_user.save(update_fields=["role"])
+        except ValueError:
+            # AppUser doesn't exist - create it explicitly
+            try:
+                app_user = AppUser.objects.create(
+                    auth0_id=auth0_user["user_id"],
+                    email=email,
+                    role="mentor",
+                    status="active",
+                )
+            except IntegrityError as e:
+                # Database constraint violation (duplicate email or auth0_id)
+                # Clean up Auth0 user since DB operation failed
+                logger.error(f"Failed to create AppUser for {email}: {e}. Cleaning up Auth0 user.")
+                try:
+                    Auth0Client.delete_user(auth0_user["user_id"], ignore_not_found=True)
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup Auth0 user {auth0_user['user_id']}: {cleanup_error}")
+                
+                # Re-raise as validation error
+                raise serializers.ValidationError(
+                    {"email": "An account with this email or identifier already exists. Please try again."}
+                )
 
         # 3) Create or update MentorProfile (status = pending for new registrations)
-        profile, created = MentorProfile.objects.get_or_create(
-            user=app_user,
-            defaults={
-                "email": email,
-                "full_name": validated_data["full_name"],
-                "professional_title": validated_data["professional_title"],
-                "location": validated_data["location"],
-                "linkedin_url": validated_data["linkedin_url"],
-                "bio": validated_data["bio"],
-                "languages": validated_data["languages"],
-                "country": validated_data["country"],
-                "profile_picture": validated_data.get("profile_picture"),
-                "cv": validated_data["cv"],
-                "status": "pending",  # Always pending for new mentor registrations
-            }
-        )
-        
-        if not created:
-            # Update existing profile (but preserve status if already approved/banned/rejected)
-            profile.email = email
-            profile.full_name = validated_data["full_name"]
-            profile.professional_title = validated_data["professional_title"]
-            profile.location = validated_data["location"]
-            profile.linkedin_url = validated_data["linkedin_url"]
-            profile.bio = validated_data["bio"]
-            profile.languages = validated_data["languages"]
-            profile.country = validated_data["country"]
-            if validated_data.get("profile_picture"):
-                profile.profile_picture = validated_data["profile_picture"]
-            if validated_data.get("cv"):
-                profile.cv = validated_data["cv"]
-            # Only set to pending if currently pending (don't override approved/rejected/banned)
-            if profile.status == "pending":
-                profile.status = "pending"
-            profile.save()
+        # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
+        # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        try:
+            profile, created = MentorProfile.objects.get_or_create(
+                user=app_user,
+                defaults={
+                    "email": email,
+                    "full_name": validated_data["full_name"],
+                    "professional_title": validated_data["professional_title"],
+                    "location": validated_data["location"],
+                    "linkedin_url": validated_data["linkedin_url"],
+                    "bio": validated_data["bio"],
+                    "languages": validated_data["languages"],
+                    "country": validated_data["country"],
+                    "profile_picture": validated_data.get("profile_picture"),
+                    "cv": validated_data["cv"],
+                    "status": "pending",  # Always pending for new mentor registrations
+                }
+            )
+            
+            if not created:
+                # Update existing profile (but preserve status if already approved/banned/rejected)
+                profile.email = email
+                profile.full_name = validated_data["full_name"]
+                profile.professional_title = validated_data["professional_title"]
+                profile.location = validated_data["location"]
+                profile.linkedin_url = validated_data["linkedin_url"]
+                profile.bio = validated_data["bio"]
+                profile.languages = validated_data["languages"]
+                profile.country = validated_data["country"]
+                if validated_data.get("profile_picture"):
+                    profile.profile_picture = validated_data["profile_picture"]
+                if validated_data.get("cv"):
+                    profile.cv = validated_data["cv"]
+                # Only set to pending if currently pending (don't override approved/rejected/banned)
+                if profile.status == "pending":
+                    profile.status = "pending"
+                profile.save()
+        except Exception as e:
+            # Profile creation/update failed - transaction will rollback AppUser
+            # Log error for monitoring
+            logger.error(f"Failed to create/update MentorProfile for {email}: {e}", exc_info=True)
+            raise
 
         return profile
 
@@ -509,12 +591,20 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
             )
 
         # Create new AppUser (no automatic linking)
-        app_user = AppUser.objects.create(
-            auth0_id=auth0_id,
-            email=email,
-            role="mentor",
-            status="active",
-        )
+        try:
+            app_user = AppUser.objects.create(
+                auth0_id=auth0_id,
+                email=email,
+                role="mentor",
+                status="active",
+            )
+        except IntegrityError as e:
+            # Database constraint violation (duplicate email or auth0_id)
+            # This should not happen if email check above worked, but handle race conditions
+            logger.error(f"Failed to create AppUser for {email}: {e}. Possible race condition.")
+            raise serializers.ValidationError(
+                {"email": "An account with this email or identifier already exists. Please try again."}
+            )
 
         # Update Auth0 app_metadata with role + approval_status (pending)
         try:
@@ -540,41 +630,49 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                 logger.warning("Failed to assign RBAC role to social mentor %s", email)
 
         # Create or update MentorProfile (status = pending for new registrations)
-        profile, profile_created = MentorProfile.objects.get_or_create(
-            user=app_user,
-            defaults={
-                "email": email,
-                "full_name": validated_data["full_name"],
-                "professional_title": validated_data["professional_title"],
-                "location": validated_data["location"],
-                "linkedin_url": validated_data["linkedin_url"],
-                "bio": validated_data["bio"],
-                "languages": validated_data["languages"],
-                "country": validated_data["country"],
-                "profile_picture": validated_data.get("profile_picture"),
-                "cv": validated_data["cv"],
-                "status": "pending",  # Always pending for new mentor registrations
-            }
-        )
-        
-        if not profile_created:
-            # Update existing profile (but preserve status if already approved/banned/rejected)
-            profile.email = email
-            profile.full_name = validated_data["full_name"]
-            profile.professional_title = validated_data["professional_title"]
-            profile.location = validated_data["location"]
-            profile.linkedin_url = validated_data["linkedin_url"]
-            profile.bio = validated_data["bio"]
-            profile.languages = validated_data["languages"]
-            profile.country = validated_data["country"]
-            if validated_data.get("profile_picture"):
-                profile.profile_picture = validated_data["profile_picture"]
-            if validated_data.get("cv"):
-                profile.cv = validated_data["cv"]
-            # Only set to pending if currently pending (don't override approved/rejected/banned)
-            if profile.status == "pending":
-                profile.status = "pending"
-            profile.save()
+        # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
+        # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        try:
+            profile, profile_created = MentorProfile.objects.get_or_create(
+                user=app_user,
+                defaults={
+                    "email": email,
+                    "full_name": validated_data["full_name"],
+                    "professional_title": validated_data["professional_title"],
+                    "location": validated_data["location"],
+                    "linkedin_url": validated_data["linkedin_url"],
+                    "bio": validated_data["bio"],
+                    "languages": validated_data["languages"],
+                    "country": validated_data["country"],
+                    "profile_picture": validated_data.get("profile_picture"),
+                    "cv": validated_data["cv"],
+                    "status": "pending",  # Always pending for new mentor registrations
+                }
+            )
+            
+            if not profile_created:
+                # Update existing profile (but preserve status if already approved/banned/rejected)
+                profile.email = email
+                profile.full_name = validated_data["full_name"]
+                profile.professional_title = validated_data["professional_title"]
+                profile.location = validated_data["location"]
+                profile.linkedin_url = validated_data["linkedin_url"]
+                profile.bio = validated_data["bio"]
+                profile.languages = validated_data["languages"]
+                profile.country = validated_data["country"]
+                if validated_data.get("profile_picture"):
+                    profile.profile_picture = validated_data["profile_picture"]
+                if validated_data.get("cv"):
+                    profile.cv = validated_data["cv"]
+                # Only set to pending if currently pending (don't override approved/rejected/banned)
+                if profile.status == "pending":
+                    profile.status = "pending"
+                profile.save()
+        except Exception as e:
+            # Profile creation/update failed - transaction will rollback AppUser
+            # Log error for monitoring
+            logger.error(f"Failed to create/update MentorProfile for {email}: {e}", exc_info=True)
+            raise ExternalServiceError("Failed to create mentor profile. Please try again.")
 
         return profile
 
