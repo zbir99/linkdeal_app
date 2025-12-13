@@ -1,44 +1,17 @@
-# ========================================
-# DOCKER - NE PAS COMMITTER
-# ========================================
+# Environment variables
 .env
+*.env
+backend/LinkDeal/.env
 
-# ========================================
-# NODE.JS - DÉPENDANCES
-# ========================================
+# Python
+__pycache__/
+*.pyc
+venv/
+.env.venv
+
+# Node
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# ========================================
-# BUILD - FICHIERS GÉNÉRÉS
-# ========================================
-dist/
-build/
-.vite/
-*.local
-
-# ========================================
-# IDE - CONFIGURATION LOCALE
-# ========================================
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# ========================================
-# SYSTÈME - FICHIERS CACHÉS
-# ========================================
+# OS
 .DS_Store
 Thumbs.db
-*~
-
-# ========================================
-# LOGS
-# ========================================
-logs/
-*.log
