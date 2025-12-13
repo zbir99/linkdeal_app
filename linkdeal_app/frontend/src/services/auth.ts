@@ -194,9 +194,23 @@ class AuthService {
     const redirectUri = `${window.location.origin}/callback`;
     const state = Math.random().toString(36).substring(7); // Simple state for CSRF protection
 
+    // Clear any previous social auth data to prevent stale data from previous accounts
+    sessionStorage.removeItem('social_auth_pending');
+    sessionStorage.removeItem('social_auth_timestamp');
+    sessionStorage.removeItem('social_auth_name');
+    sessionStorage.removeItem('social_auth_given_name');
+    sessionStorage.removeItem('social_auth_family_name');
+    sessionStorage.removeItem('social_auth_nickname');
+    sessionStorage.removeItem('social_auth_picture');
+    sessionStorage.removeItem('social_auth_email');
+    sessionStorage.removeItem('social_auth_country');
+    sessionStorage.removeItem('social_auth_language');
+
     // Store state for verification on callback
     sessionStorage.setItem('auth0_state', state);
     sessionStorage.setItem('auth0_provider', provider);
+    // Store timestamp to detect stale sessions
+    sessionStorage.setItem('social_auth_timestamp', Date.now().toString());
 
     // Build Auth0 authorization URL
     const authUrl = new URL(`https://${AUTH0_DOMAIN}/authorize`);
@@ -216,8 +230,8 @@ class AuthService {
   // 1. Get token from Auth0
   // 2. Store token
   // 3. Call backend with token to authenticate & sync user
-  // 4. Decision: User exists? → Success / Registration needed
-  async handleSocialCallback(code: string, state: string): Promise<AuthResponse & { needsRegistration?: boolean }> {
+  // 4. Decision: User exists? → Success / Registration needed / Linking needed
+  async handleSocialCallback(code: string, state: string): Promise<AuthResponse & { needsRegistration?: boolean; requiresLinking?: boolean }> {
     try {
       // Verify state to prevent CSRF (if we have stored state)
       const storedState = sessionStorage.getItem('auth0_state');
@@ -275,6 +289,54 @@ class AuthService {
 
         // Debug: log what the backend returns
         console.log('Backend /auth/me/ response:', profile);
+
+        // Check if backend indicates account linking is needed
+        // This happens when a social email matches an existing DB account
+        if (profile.requires_linking) {
+          // Store social auth info for the linking flow
+          sessionStorage.setItem('social_auth_provider', provider);
+          sessionStorage.setItem('social_auth_pending', 'true');
+          sessionStorage.setItem('social_auth_email', profile.email || '');
+          sessionStorage.setItem('social_auth_existing_role', profile.existing_role || 'mentee');
+          sessionStorage.setItem('social_auth_requires_linking', 'true');
+
+          // Try to get user's name from Auth0 userinfo endpoint
+          try {
+            const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+            if (token) {
+              const userInfoResponse = await axios.get(
+                `/auth0/userinfo`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                }
+              );
+              const userInfo = userInfoResponse.data;
+              console.log('Auth0 userinfo (for linking):', userInfo);
+
+              if (userInfo.name) {
+                sessionStorage.setItem('social_auth_name', userInfo.name);
+              }
+              if (userInfo.picture) {
+                sessionStorage.setItem('social_auth_picture', userInfo.picture);
+              }
+              // Email from namespaced claims
+              const namespacedEmail = userInfo['https://linkdeal.com/claims/email'];
+              if (namespacedEmail) {
+                sessionStorage.setItem('social_auth_email', namespacedEmail);
+              }
+            }
+          } catch (userInfoError) {
+            console.log('Could not fetch userinfo for linking:', userInfoError);
+          }
+
+          return {
+            success: false,
+            requiresLinking: true,
+            message: profile.message || 'An account with this email already exists. Would you like to link your accounts?'
+          };
+        }
 
         // Check if the backend indicates registration is needed
         // Backend now returns explicit needs_registration flag
@@ -365,14 +427,85 @@ class AuthService {
 
         // Check the error to determine the flow
         const errorStatus = profileError.response?.status;
-        const errorMessage = profileError.response?.data?.message || '';
+        // Backend error structure: { error: { type, message, details } }
+        const errorObj = profileError.response?.data?.error || {};
+        const errorMessage = errorObj.message ||
+          profileError.response?.data?.message ||
+          profileError.response?.data?.detail || '';
 
-        if (errorStatus === 404 || errorMessage.includes('not found')) {
+        // Backend returns 403 (AuthenticationFailed) when:
+        // - User doesn't exist ("Account not found", "Registration required")
+        // - Mentee/Mentor profile missing ("profile not found", "complete registration")
+        // Also check for 404 for compatibility
+        const isRegistrationNeeded = (
+          errorStatus === 404 ||
+          (errorStatus === 403 && (
+            errorMessage.toLowerCase().includes('not found') ||
+            errorMessage.toLowerCase().includes('registration') ||
+            errorMessage.toLowerCase().includes('complete registration')
+          ))
+        );
+
+        if (isRegistrationNeeded) {
           // User not found in database - needs to complete registration
           // We have the token, so they're authenticated with Auth0
           // Store the provider info for the registration flow
           sessionStorage.setItem('social_auth_provider', provider);
           sessionStorage.setItem('social_auth_pending', 'true');
+
+          // Fetch user info from Auth0 userinfo endpoint to get name, picture, etc.
+          try {
+            const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+            if (token) {
+              const userInfoResponse = await axios.get(
+                `/auth0/userinfo`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                }
+              );
+              const userInfo = userInfoResponse.data;
+              console.log('Auth0 userinfo (from 403 handler):', userInfo);
+
+              // Store all available info for signup pre-fill
+              // Common fields (Google & LinkedIn)
+              if (userInfo.name) {
+                sessionStorage.setItem('social_auth_name', userInfo.name);
+              }
+              if (userInfo.given_name) {
+                sessionStorage.setItem('social_auth_given_name', userInfo.given_name);
+              }
+              if (userInfo.family_name) {
+                sessionStorage.setItem('social_auth_family_name', userInfo.family_name);
+              }
+              if (userInfo.nickname) {
+                sessionStorage.setItem('social_auth_nickname', userInfo.nickname);
+              }
+              if (userInfo.picture) {
+                sessionStorage.setItem('social_auth_picture', userInfo.picture);
+              }
+
+              // Email from namespaced claims (both Google & LinkedIn)
+              const namespacedEmail = userInfo['https://linkdeal.com/claims/email'];
+              if (namespacedEmail) {
+                sessionStorage.setItem('social_auth_email', namespacedEmail);
+              }
+
+              // LinkedIn-specific: locale info (country & language)
+              if (userInfo.locale) {
+                if (userInfo.locale.country) {
+                  sessionStorage.setItem('social_auth_country', userInfo.locale.country);
+                }
+                if (userInfo.locale.language) {
+                  sessionStorage.setItem('social_auth_language', userInfo.locale.language);
+                }
+              }
+            }
+          } catch (userInfoError) {
+            console.log('Could not fetch userinfo (from 403 handler):', userInfoError);
+            // Continue anyway - social data is optional
+          }
 
           return {
             success: false,
@@ -381,10 +514,10 @@ class AuthService {
           };
         }
 
-        // Some other error occurred
+        // Some other error occurred (banned, rejected, etc.)
         return {
           success: false,
-          message: profileError.response?.data?.message || 'Failed to get user profile. Please try again.'
+          message: errorMessage || 'Failed to get user profile. Please try again.'
         };
       }
     } catch (error: any) {
@@ -833,16 +966,46 @@ class AuthService {
         const errorData = error.response.data
         let errorMessage = 'Registration failed'
 
-        // Check for ExternalServiceError message (from Auth0 errors)
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message
-        }
-        // Check for specific email already registered error
-        else if (errorData.error?.details?.email && errorData.error.details.email[0]?.includes('Email is already registered')) {
+        // Check for specific email already registered error first
+        if (errorData.error?.details?.email && errorData.error.details.email[0]?.includes('Email is already registered')) {
           errorMessage = 'This email is already registered. Please use a different email or try logging in.'
         }
-        // Extract specific field errors
-        else if (typeof errorData === 'object') {
+        // Check for validation errors with details (backend returns { error: { type, message, details } })
+        else if (errorData.error?.details && typeof errorData.error.details === 'object') {
+          const details = errorData.error.details
+          const fieldErrors: string[] = []
+
+          // Map field names to user-friendly labels
+          const fieldLabels: { [key: string]: string } = {
+            'email': 'Email',
+            'password': 'Password',
+            'password_confirm': 'Confirm Password',
+            'full_name': 'Full Name',
+            'field_of_study': 'Field of Study',
+            'country': 'Country',
+            'interests': 'Interests',
+            'user_type': 'User Type',
+            'session_frequency': 'Session Frequency',
+            'profile_picture': 'Profile Picture'
+          }
+
+          // Extract all field-specific errors
+          for (const [field, messages] of Object.entries(details)) {
+            const label = fieldLabels[field] || field
+            const messageArray = Array.isArray(messages) ? messages : [messages]
+            fieldErrors.push(`${label}: ${messageArray.join(', ')}`)
+          }
+
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n')
+          }
+        }
+        // Check for ExternalServiceError message (from Auth0 errors)
+        else if (errorData.error?.message && errorData.error.message !== 'Validation error') {
+          errorMessage = errorData.error.message
+        }
+        // Extract specific field errors from legacy format
+        else if (typeof errorData === 'object' && !errorData.error) {
           const errors = []
           if (errorData.email) errors.push(`Email: ${errorData.email}`)
           if (errorData.password) errors.push(`Password: ${errorData.password}`)
@@ -981,23 +1144,147 @@ class AuthService {
   }
 
   // Social registration (for Google/LinkedIn)
-  async socialRegister(role: 'mentor' | 'mentee', profileData: any): Promise<AuthResponse> {
+  // Returns { success, requiresLinking?, data?, message? }
+  async socialRegister(role: 'mentor' | 'mentee', profileData: any): Promise<AuthResponse & { requiresLinking?: boolean }> {
     try {
       const endpoint = role === 'mentor' ? 'auth/register/mentor/social/' : 'auth/register/mentee/social/'
-      const response = await api.post(endpoint, profileData)
 
-      if (response.data.success) {
+      // Check if profileData contains files - if so, use FormData
+      const hasFiles = Object.values(profileData).some(value => value instanceof File)
+
+      let response
+      if (hasFiles) {
+        // Convert to FormData for file upload
+        const formData = new FormData()
+        for (const [key, value] of Object.entries(profileData)) {
+          if (value instanceof File) {
+            formData.append(key, value)
+          } else if (value !== null && value !== undefined) {
+            formData.append(key, String(value))
+          }
+        }
+        response = await api.post(endpoint, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      } else {
+        response = await api.post(endpoint, profileData)
+      }
+
+      // Handle successful registration
+      if (response.data.email || response.data.success) {
         const userData = {
-          id: response.data.data.id,
-          email: response.data.data.email,
-          role: response.data.data.role,
+          id: response.data.id || response.data.user_id || 'temp-id',
+          email: response.data.email,
+          role: role,
         }
         localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(userData))
+        return { success: true, data: userData }
       }
 
       return response.data
-    } catch (error) {
+    } catch (error: any) {
+      console.log('Social registration error:', error.response?.data)
+
+      // Check if this is an "email already exists" error requiring account linking
+      const errorData = error.response?.data
+      if (error.response?.status === 400) {
+        // Check for email already registered error
+        const details = errorData?.error?.details || errorData?.details || {}
+        const emailErrors = details.email || []
+        const isEmailExists = emailErrors.some((e: string) =>
+          e.toLowerCase().includes('already registered') ||
+          e.toLowerCase().includes('already exists')
+        )
+
+        if (isEmailExists) {
+          return {
+            success: false,
+            requiresLinking: true,
+            message: 'An account with this email already exists. Would you like to link your social account to the existing account?'
+          }
+        }
+
+        // Extract validation error messages
+        let errorMessage = 'Registration failed'
+        if (errorData?.error?.details && typeof errorData.error.details === 'object') {
+          const fieldErrors: string[] = []
+          for (const [field, messages] of Object.entries(errorData.error.details)) {
+            const msgArray = Array.isArray(messages) ? messages : [messages]
+            fieldErrors.push(`${field}: ${msgArray.join(', ')}`)
+          }
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n')
+          }
+        } else if (errorData?.error?.message) {
+          errorMessage = errorData.error.message
+        }
+
+        return { success: false, message: errorMessage }
+      }
+
       throw error
+    }
+  }
+
+  // Check if email exists in the system (for account linking flow)
+  async checkEmailExists(email: string): Promise<{ exists: boolean; requiresLinking: boolean; message: string }> {
+    try {
+      const response = await api.post('auth/register/check-email/', { email })
+      return {
+        exists: response.data.exists,
+        requiresLinking: response.data.requires_linking || false,
+        message: response.data.message || ''
+      }
+    } catch (error: any) {
+      console.log('Check email error:', error.response?.data)
+      throw error
+    }
+  }
+
+  // Request account linking (sends verification email)
+  async requestAccountLinking(
+    email: string,
+    role: 'mentor' | 'mentee',
+    registrationData: any
+  ): Promise<{ success: boolean; message: string; expiresAt?: string }> {
+    try {
+      const response = await api.post('auth/register/request-linking/', {
+        email,
+        link_consent: true,
+        registration_data: registrationData,
+        role
+      })
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        expiresAt: response.data.expires_at
+      }
+    } catch (error: any) {
+      console.log('Request linking error:', error.response?.data)
+      const errorData = error.response?.data
+      return {
+        success: false,
+        message: errorData?.message || errorData?.error?.message || 'Failed to request account linking'
+      }
+    }
+  }
+
+  // Verify account linking (called when user clicks email link)
+  async verifyLinking(token: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.get(`auth/register/verify-linking/${token}/`)
+      return {
+        success: response.data.success,
+        message: response.data.message
+      }
+    } catch (error: any) {
+      console.log('Verify linking error:', error.response?.data)
+      const errorData = error.response?.data
+      return {
+        success: false,
+        message: errorData?.message || errorData?.error?.message || 'Verification failed'
+      }
     }
   }
 

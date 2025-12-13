@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import linkDealLogo from "@/assets/landing_page/images/logo (2).png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
 
 const stats = [
@@ -17,6 +17,35 @@ export const Login = (): JSX.Element => {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // On page load: Clear any stale/orphaned social auth data
+    // Users visiting login page want to start fresh - clear any incomplete social auth
+    useEffect(() => {
+        const isSocialAuthPending = sessionStorage.getItem('social_auth_pending') === 'true';
+        const hasSocialData = sessionStorage.getItem('social_auth_email') !== null ||
+            sessionStorage.getItem('social_auth_picture') !== null;
+
+        // Always clear social auth data when user visits login page
+        // This handles users who abandoned registration and came back to login
+        if (isSocialAuthPending || hasSocialData) {
+            console.log('Login - Clearing incomplete social auth data');
+            sessionStorage.removeItem('social_auth_pending');
+            sessionStorage.removeItem('social_auth_timestamp');
+            sessionStorage.removeItem('social_auth_name');
+            sessionStorage.removeItem('social_auth_given_name');
+            sessionStorage.removeItem('social_auth_family_name');
+            sessionStorage.removeItem('social_auth_nickname');
+            sessionStorage.removeItem('social_auth_picture');
+            sessionStorage.removeItem('social_auth_email');
+            sessionStorage.removeItem('social_auth_country');
+            sessionStorage.removeItem('social_auth_language');
+            sessionStorage.removeItem('social_auth_provider');
+            sessionStorage.removeItem('social_auth_existing_role');
+            sessionStorage.removeItem('social_auth_requires_linking');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -232,7 +261,22 @@ export const Login = (): JSX.Element => {
                                         Don't have an account yet?{" "}
                                         <button
                                             className="[font-family:'Arimo-Regular',Helvetica] font-normal text-[#a683ff] text-sm tracking-[0] leading-[21px] whitespace-nowrap hover:text-[#8b6aff] hover:underline transition-all duration-200 ease-out transform hover:scale-105"
-                                            onClick={() => navigate('/signup')}
+                                            onClick={() => {
+                                                // Clear any existing social auth data to ensure fresh signup
+                                                sessionStorage.removeItem('social_auth_pending');
+                                                sessionStorage.removeItem('social_auth_timestamp');
+                                                sessionStorage.removeItem('social_auth_name');
+                                                sessionStorage.removeItem('social_auth_given_name');
+                                                sessionStorage.removeItem('social_auth_family_name');
+                                                sessionStorage.removeItem('social_auth_nickname');
+                                                sessionStorage.removeItem('social_auth_picture');
+                                                sessionStorage.removeItem('social_auth_email');
+                                                sessionStorage.removeItem('social_auth_country');
+                                                sessionStorage.removeItem('social_auth_language');
+                                                localStorage.removeItem('token');
+                                                localStorage.removeItem('user');
+                                                navigate('/signup');
+                                            }}
                                         >
                                             Create an account
                                         </button>
@@ -409,7 +453,22 @@ export const Login = (): JSX.Element => {
                             Don't have an account yet?{" "}
                             <button
                                 className="text-[#a683ff] hover:text-[#8b6aff] underline-offset-2 hover:underline"
-                                onClick={() => navigate('/signup')}
+                                onClick={() => {
+                                    // Clear any existing social auth data to ensure fresh signup
+                                    sessionStorage.removeItem('social_auth_pending');
+                                    sessionStorage.removeItem('social_auth_timestamp');
+                                    sessionStorage.removeItem('social_auth_name');
+                                    sessionStorage.removeItem('social_auth_given_name');
+                                    sessionStorage.removeItem('social_auth_family_name');
+                                    sessionStorage.removeItem('social_auth_nickname');
+                                    sessionStorage.removeItem('social_auth_picture');
+                                    sessionStorage.removeItem('social_auth_email');
+                                    sessionStorage.removeItem('social_auth_country');
+                                    sessionStorage.removeItem('social_auth_language');
+                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('user');
+                                    navigate('/signup');
+                                }}
                             >
                                 Create an account
                             </button>

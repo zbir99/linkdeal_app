@@ -158,12 +158,29 @@ export const Signup = () => {
         setError('');
 
         try {
+            // Clear any previous social auth data since this is a normal signup
+            sessionStorage.removeItem('social_auth_pending');
+            sessionStorage.removeItem('social_auth_name');
+            sessionStorage.removeItem('social_auth_given_name');
+            sessionStorage.removeItem('social_auth_family_name');
+            sessionStorage.removeItem('social_auth_nickname');
+            sessionStorage.removeItem('social_auth_picture');
+            sessionStorage.removeItem('social_auth_email');
+            sessionStorage.removeItem('social_auth_country');
+            sessionStorage.removeItem('social_auth_language');
+            sessionStorage.removeItem('social_auth_timestamp');
+            // Also clear access token since this is a fresh normal signup
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
             // Store data in context instead of creating account
             updateSignupData({
                 full_name: formData.full_name.trim(),
                 email: formData.email.trim(),
                 password: formData.password,
-                field_of_study: selectedField
+                field_of_study: selectedField,
+                // Clear profile picture preview for normal signup
+                profile_picture_preview: ''
             });
 
             // Navigate to next step (account will be created at final step)

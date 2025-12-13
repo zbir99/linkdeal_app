@@ -43,9 +43,19 @@ export const SocialCallback = (): JSX.Element => {
                 // User exists! Login successful ✓ - navigate to dashboard
                 const userRole = result.data?.role || 'mentee';
                 navigate(`/${userRole}/dashboard`, { replace: true });
+            } else if ((result as any).requiresLinking) {
+                // Email exists with different auth method → Account linking needed
+                // Session storage already has social auth data from handleSocialCallback
+                navigate('/auth/link-account', {
+                    replace: true,
+                    state: {
+                        fromSocialAuth: true,
+                        message: 'Link your social account to your existing account.'
+                    }
+                });
             } else if ((result as any).needsRegistration) {
                 // User doesn't exist → Registration needed
-                // Redirect to signup page to complete profile
+                // Redirect to signup page for role selection first
                 navigate('/signup', {
                     replace: true,
                     state: {

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
-import { LandingPage, AboutUs, Signup, ForgotPassword } from '@/pages/shared'
+import { LandingPage, AboutUs, Signup, ForgotPassword, VerifyLinking, LinkingRequest } from '@/pages/shared'
 import Login from '@/pages/shared/Login'
 import SocialCallback from '@/pages/shared/SocialCallback'
 import EmailVerificationPending from '@/pages/shared/EmailVerificationPending'
@@ -45,6 +45,8 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/callback" element={<SocialCallback />} />
                     <Route path="/verify-email" element={<EmailVerificationPending />} />
+                    <Route path="/auth/verify-linking/:token" element={<VerifyLinking />} />
+                    <Route path="/auth/link-account" element={<LinkingRequest />} />
                     <Route path="/admin/validation" element={<Validation />} />
                     <Route path="/admin/support-tickets" element={<SupportTickets />} />
                     <Route path="/admin/user-management" element={<UserManagement />} />

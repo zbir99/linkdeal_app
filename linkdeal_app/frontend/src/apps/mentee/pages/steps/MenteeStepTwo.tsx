@@ -39,6 +39,8 @@ export const Infor = (): JSX.Element => {
         }
     }, []);
 
+    // NOTE: beforeunload handler was removed - see MenteeStepOne for details
+
     const handlePreviousClick = () => {
         navigate('/mentee/step1');
     };
@@ -307,7 +309,10 @@ export const Infor = (): JSX.Element => {
                         </div>
                     </div>
 
-                    <button className="flex items-center justify-center w-full py-3 text-[#99a1ae] hover:text-white hover:scale-[1.05] transition-all duration-200 ease-in-out group">
+                    <button
+                        className="flex items-center justify-center w-full py-3 text-[#99a1ae] hover:text-white hover:scale-[1.05] transition-all duration-200 ease-in-out group"
+                        onClick={() => navigate('/mentee/step3')}
+                    >
                         <span className="text-sm font-medium">Skip for now</span>
                         <svg className="w-4 h-4 ml-1 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -374,7 +379,10 @@ export const Infor = (): JSX.Element => {
                             Next Step
                         </button>
                     </div>
-                    <button className="text-sm text-white/70 underline-offset-2 hover:underline">
+                    <button
+                        className="text-sm text-white/70 underline-offset-2 hover:underline"
+                        onClick={() => navigate('/mentee/step3')}
+                    >
                         Skip for now
                     </button>
                 </div>
