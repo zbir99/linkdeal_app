@@ -18,6 +18,7 @@ from accounts.serializers import (
     AdminMenteeSerializer,
     AdminInviteSerializer,
 )
+from accounts.email_service import send_status_change_email
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,17 @@ class ApproveMentorView(APIView):
         mentor.status = "approved"
         mentor.save(update_fields=["status"])
 
+        # Send approval email
+        try:
+            send_status_change_email(
+                recipient_email=mentor.user.email,
+                user_name=mentor.full_name,
+                status="approved",
+                user_type="mentor",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send approval email to {mentor.user.email}: {e}", exc_info=True)
+
         serializer = AdminMentorDetailSerializer(mentor, context={"request": request})
         return Response(
             {
@@ -70,12 +82,25 @@ class RejectMentorView(APIView):
     
     Rejects a mentor by updating their status to "rejected".
     The mentor profile and related data are preserved.
+    
+    ⚠️ IMPORTANT: Once a mentor is approved, they cannot be rejected.
     """
     permission_classes = [IsAuthenticatedAuth0, IsAdmin]
 
     @transaction.atomic
     def post(self, request, pk):
         mentor = get_object_or_404(MentorProfile, pk=pk)
+        
+        # ✅ VALIDATION: Prevent rejection if already approved
+        if mentor.status == "approved":
+            return Response(
+                {
+                    "success": False,
+                    "message": "Cannot reject an approved mentor. Once approved, a mentor cannot be rejected.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
         auth0_id = mentor.user.auth0_id
 
         # Update Auth0 metadata to reflect rejection
@@ -87,6 +112,17 @@ class RejectMentorView(APIView):
         # Update mentor status in local database
         mentor.status = "rejected"
         mentor.save(update_fields=["status"])
+
+        # Send rejection email
+        try:
+            send_status_change_email(
+                recipient_email=mentor.user.email,
+                user_name=mentor.full_name,
+                status="rejected",
+                user_type="mentor",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send rejection email to {mentor.user.email}: {e}", exc_info=True)
 
         serializer = AdminMentorDetailSerializer(mentor, context={"request": request})
         return Response(
@@ -154,6 +190,18 @@ class BanMentorView(APIView):
         mentor.ban_reason = ban_reason
         mentor.save(update_fields=["status", "banned_at", "banned_by", "ban_reason"])
 
+        # Send ban email
+        try:
+            send_status_change_email(
+                recipient_email=mentor.user.email,
+                user_name=mentor.full_name,
+                status="banned",
+                user_type="mentor",
+                ban_reason=ban_reason,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send ban email to {mentor.user.email}: {e}", exc_info=True)
+
         serializer = AdminMentorDetailSerializer(mentor, context={"request": request})
         return Response(
             {
@@ -195,6 +243,17 @@ class UnbanMentorView(APIView):
         mentor.status = "approved"
         # Keep ban metadata for audit trail (do not clear)
         mentor.save(update_fields=["status"])
+
+        # Send unban email
+        try:
+            send_status_change_email(
+                recipient_email=mentor.user.email,
+                user_name=mentor.full_name,
+                status="unbanned",
+                user_type="mentor",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send unban email to {mentor.user.email}: {e}", exc_info=True)
 
         serializer = AdminMentorDetailSerializer(mentor, context={"request": request})
         return Response(
@@ -300,6 +359,18 @@ class BanMenteeView(APIView):
         mentee.ban_reason = ban_reason
         mentee.save(update_fields=["status", "banned_at", "banned_by", "ban_reason"])
 
+        # Send ban email
+        try:
+            send_status_change_email(
+                recipient_email=mentee.user.email,
+                user_name=mentee.full_name,
+                status="banned",
+                user_type="mentee",
+                ban_reason=ban_reason,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send ban email to {mentee.user.email}: {e}", exc_info=True)
+
         serializer = AdminMenteeSerializer(mentee, context={"request": request})
         return Response(
             {
@@ -339,6 +410,17 @@ class UnbanMenteeView(APIView):
 
         mentee.status = "active"
         mentee.save(update_fields=["status"])
+
+        # Send unban email
+        try:
+            send_status_change_email(
+                recipient_email=mentee.user.email,
+                user_name=mentee.full_name,
+                status="unbanned",
+                user_type="mentee",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send unban email to {mentee.user.email}: {e}", exc_info=True)
 
         serializer = AdminMenteeSerializer(mentee, context={"request": request})
         return Response(

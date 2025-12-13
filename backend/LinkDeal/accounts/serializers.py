@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from accounts.models import AppUser, MentorProfile, MenteeProfile
 from accounts.auth0_client import Auth0Client
 from accounts.services import IdentityMappingService
+from accounts.email_service import send_welcome_email
 from core.exceptions import ExternalServiceError
 from rest_framework import exceptions
 
@@ -234,6 +235,16 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
             logger.error(f"Failed to create/update MenteeProfile for {email}: {e}", exc_info=True)
             raise
 
+        # Send welcome email
+        try:
+            send_welcome_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                user_type="mentee",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
+
         return profile
 
 
@@ -247,9 +258,11 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
     Step 2 of 2-step social registration flow.
     Assumes Auth0 has already authenticated the user (Step 1).
     Uses IdentityMappingService to handle identity linking.
+    
+    Note: full_name is automatically extracted from Auth0 identity provider
+    and cannot be modified via the form.
     """
 
-    full_name = serializers.CharField(max_length=255)
     field_of_study = serializers.CharField(max_length=255)
     country = serializers.CharField(max_length=100)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
@@ -294,6 +307,11 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
 
         email = auth0_user.email
         auth0_id = auth0_user.auth0_id
+        
+        # Extract name from Auth0 identity provider (cannot be modified)
+        full_name = getattr(auth0_user, 'name', None)
+        if not full_name:
+            raise exceptions.ValidationError("Unable to extract name from identity provider. Please contact support.")
 
         # Check if user is banned/rejected (should not be able to register)
         approval_status = (auth0_user.app_metadata or {}).get("approval_status")
@@ -359,7 +377,7 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
             profile, profile_created = MenteeProfile.objects.get_or_create(
                 user=app_user,
                 defaults={
-                    "full_name": validated_data["full_name"],
+                    "full_name": full_name,  # From Auth0, not from form
                     "email": email,
                     "field_of_study": validated_data["field_of_study"],
                     "country": validated_data["country"],
@@ -373,7 +391,7 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
             
             if not profile_created:
                 # Update existing profile
-                profile.full_name = validated_data["full_name"]
+                profile.full_name = full_name  # From Auth0, not from form
                 profile.email = email
                 profile.field_of_study = validated_data["field_of_study"]
                 profile.country = validated_data["country"]
@@ -389,6 +407,16 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
             # Log error for monitoring
             logger.error(f"Failed to create/update MenteeProfile for {email}: {e}", exc_info=True)
             raise ExternalServiceError("Failed to create mentee profile. Please try again.")
+
+        # Send welcome email
+        try:
+            send_welcome_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                user_type="mentee",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
 
         return profile
 
@@ -537,6 +565,16 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
             logger.error(f"Failed to create/update MentorProfile for {email}: {e}", exc_info=True)
             raise
 
+        # Send welcome email
+        try:
+            send_welcome_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                user_type="mentor",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
+
         return profile
 
 
@@ -548,9 +586,11 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
     """
     Social login based mentor registration (Google/LinkedIn).
     Creates mentor with status 'pending' (requires admin approval).
+    
+    Note: full_name is automatically extracted from Auth0 identity provider
+    and cannot be modified via the form.
     """
 
-    full_name = serializers.CharField(max_length=255)
     professional_title = serializers.CharField(max_length=255)
     location = serializers.CharField(max_length=255)
     linkedin_url = serializers.URLField()
@@ -571,6 +611,11 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
 
         email = auth0_user.email
         auth0_id = auth0_user.auth0_id
+        
+        # Extract name from Auth0 identity provider (cannot be modified)
+        full_name = getattr(auth0_user, 'name', None)
+        if not full_name:
+            raise exceptions.ValidationError("Unable to extract name from identity provider. Please contact support.")
 
         # Check if user is banned/rejected (should not be able to register)
         approval_status = (auth0_user.app_metadata or {}).get("approval_status")
@@ -637,7 +682,7 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                 user=app_user,
                 defaults={
                     "email": email,
-                    "full_name": validated_data["full_name"],
+                    "full_name": full_name,  # From Auth0, not from form
                     "professional_title": validated_data["professional_title"],
                     "location": validated_data["location"],
                     "linkedin_url": validated_data["linkedin_url"],
@@ -653,7 +698,7 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
             if not profile_created:
                 # Update existing profile (but preserve status if already approved/banned/rejected)
                 profile.email = email
-                profile.full_name = validated_data["full_name"]
+                profile.full_name = full_name  # From Auth0, not from form
                 profile.professional_title = validated_data["professional_title"]
                 profile.location = validated_data["location"]
                 profile.linkedin_url = validated_data["linkedin_url"]
@@ -673,6 +718,16 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
             # Log error for monitoring
             logger.error(f"Failed to create/update MentorProfile for {email}: {e}", exc_info=True)
             raise ExternalServiceError("Failed to create mentor profile. Please try again.")
+
+        # Send welcome email
+        try:
+            send_welcome_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                user_type="mentor",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
 
         return profile
 

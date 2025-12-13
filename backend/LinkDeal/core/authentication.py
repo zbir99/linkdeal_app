@@ -75,6 +75,9 @@ class Auth0User:
             user_metadata = payload.get(f"{ns}user_metadata", {}) or payload.get("user_metadata", {}) or {}
             self.email = app_metadata.get("email") or user_metadata.get("email")
 
+        # Extract name from identity provider
+        self.name = payload.get("name")
+
         # Get app_metadata first (needed for fallbacks)
         self.app_metadata = payload.get(f"{ns}app_metadata", {}) or payload.get("app_metadata", {}) or {}
         
