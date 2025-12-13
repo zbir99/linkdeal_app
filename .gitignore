@@ -1,0 +1,17 @@
+# Environment variables
+.env
+*.env
+backend/LinkDeal/.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env.venv
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
