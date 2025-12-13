@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  linkdeal-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: linkdeal-frontend
+    ports:
+      - "3102:80"
+    restart: unless-stopped
+    # Healthcheck désactivé - le reverse proxy gère la disponibilité
+    # healthcheck:
+    #   test: ["CMD", "nginx", "-t"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    # Variables d'environnement si nécessaire
+    # environment:
+    #   - VITE_API_URL=http://api.example.com
+
+  # Service de développement (optionnel)
+  linkdeal-dev:
+    image: node:20-alpine
+    container_name: linkdeal-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    profiles:
+      - dev
+

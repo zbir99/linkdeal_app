@@ -15,7 +15,7 @@ from accounts.serializers import (
     SocialMentorRegisterSerializer,
     SocialMenteeRegisterSerializer,
 )
-from accounts.models import AppUser
+from accounts.models import AppUser, MenteeProfile, MentorProfile
 from accounts.auth0_client import Auth0Client
 from core.exceptions import ExternalServiceError
 
@@ -47,18 +47,66 @@ class MeView(APIView):
         user = request.user
         
         # Use app_metadata as fallback for email and role if not in token
-        email = user.email or user.app_metadata.get("email")
-        role = user.role or user.app_metadata.get("role")
+        # app_metadata is always a dict (initialized in Auth0User), but add safety check
+        app_metadata = getattr(user, 'app_metadata', {}) or {}
+        email = user.email or app_metadata.get("email")
+        token_role = user.role or app_metadata.get("role")
+
+        # Check if user exists in local database with a complete profile
+        has_profile = False
+        app_user_id = None
+        needs_registration = True
+        db_role = None  # Role from database (identity-agnostic)
+
+        try:
+            # Look up AppUser by email (identity-agnostic)
+            app_user = AppUser.objects.filter(email=email).first()
+            if app_user:
+                app_user_id = str(app_user.id)
+                db_role = app_user.role  # Get role stored in database
+                
+                # Check for profile - try both mentee and mentor if role is not set
+                if db_role == 'mentee' or token_role == 'mentee':
+                    has_profile = MenteeProfile.objects.filter(user=app_user).exists()
+                    if has_profile:
+                        db_role = 'mentee'
+                elif db_role == 'mentor' or token_role == 'mentor':
+                    has_profile = MentorProfile.objects.filter(user=app_user).exists()
+                    if has_profile:
+                        db_role = 'mentor'
+                elif db_role in ['admin', 'super_admin'] or token_role in ['admin', 'super_admin']:
+                    # Admins don't need additional profile
+                    has_profile = True
+                else:
+                    # Role not set - check both profiles
+                    if MenteeProfile.objects.filter(user=app_user).exists():
+                        has_profile = True
+                        db_role = 'mentee'
+                    elif MentorProfile.objects.filter(user=app_user).exists():
+                        has_profile = True
+                        db_role = 'mentor'
+                
+                if has_profile:
+                    needs_registration = False
+        except Exception as e:
+            logger.warning(f"Error checking profile for {email}: {e}")
+
+        # Use database role if found, otherwise fall back to token role
+        final_role = db_role or token_role
 
         return Response({
             "auth0_id": user.auth0_id,
             "email": email,
+            "id": app_user_id,  # Add local database user ID
             # 'role' is the primary/derived role (convenience field for quick access)
             # 'roles' is the full RBAC roles array (can contain multiple roles)
-            "role": role,
+            "role": final_role,
             "roles": user.roles,
+            # Profile status for registration flow
+            "has_profile": has_profile,
+            "needs_registration": needs_registration,
             # 'app_metadata' contains Auth0 metadata including 'role' for backward compatibility
-            "app_metadata": user.app_metadata,
+            "app_metadata": app_metadata,
             "permissions": user.permissions,
         })
 
@@ -134,6 +182,45 @@ class SocialMentorRegisterView(generics.CreateAPIView):
 
 
 # ---------------------------------------------------------------
+# LOGOUT
+# ---------------------------------------------------------------
+
+class LogoutView(APIView):
+    """
+    POST /auth/logout/
+    Logs out the current user by clearing session data.
+    Works for all user types: mentee, mentor, admin, super_admin.
+    
+    Note: JWT tokens are stateless, so the frontend must clear the token from storage.
+    """
+    permission_classes = [IsAuthenticatedAuth0]
+
+    def post(self, request):
+        """
+        Logout the user by clearing session data.
+        Returns success response. Frontend should clear JWT token from storage.
+        """
+        # Get user info before clearing (for logging)
+        user_email = getattr(request.user, 'email', 'unknown')
+        user_role = getattr(request.user, 'role', 'unknown')
+        auth0_id = getattr(request.user, 'auth0_id', 'unknown')
+        
+        # Clear Django session if it exists
+        if hasattr(request, 'session'):
+            request.session.flush()
+        
+        logger.info(f"User logged out: {user_email} (role: {user_role}, auth0_id: {auth0_id})")
+        
+        return Response(
+            {
+                "success": True,
+                "message": "Successfully logged out. Please clear your token from client storage.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ---------------------------------------------------------------
 # PASSWORD RESET (AUTH0)
 # ---------------------------------------------------------------
 
@@ -195,4 +282,3 @@ class PasswordResetRequestView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-

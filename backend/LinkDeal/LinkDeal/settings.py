@@ -51,6 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be before CommonMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -185,11 +186,29 @@ AUTH0_AUDIENCE = os.getenv("AUTH0_API_AUDIENCE")
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
 AUTH0_ALGORITHMS = ["RS256"]
 
+# Frontend URL for account linking verification emails
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+
+# Account linking token expiration (in minutes)
+ACCOUNT_LINKING_TOKEN_EXPIRY_MINUTES = int(os.getenv("ACCOUNT_LINKING_TOKEN_EXPIRY_MINUTES", "15"))
+
+# =======================
+# Email Configuration (SendGrid SMTP)
+# =======================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # SendGrid requires 'apikey' as username (literal string)
+EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")  # Your SendGrid API key
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@linkdeal.com')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL  # For error emails
+
 # =======================
 # CORS (frontend allowed origins)
 # =======================
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React dev
+    "http://localhost:5173",  # React dev
     # "https://app.linkdeal.io",  # example prod domain
 ]
 CORS_ALLOW_CREDENTIALS = True

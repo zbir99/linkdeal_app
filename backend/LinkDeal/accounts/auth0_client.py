@@ -144,9 +144,17 @@ class Auth0Client:
 
             if not resp.ok:
                 logger.error("Auth0 create_user error: %s %s", resp.status_code, data)
+                
+                # Handle specific error codes
+                if resp.status_code == 409:
+                    # User already exists
+                    raise ExternalServiceError("A user with this email already exists. Please login instead.")
+                
                 resp.raise_for_status()
 
             return data
+        except ExternalServiceError:
+            raise  # Re-raise our custom errors
         except requests.RequestException as e:
             logger.exception("Error creating Auth0 user")
             raise ExternalServiceError("Error creating user in Auth0") from e
@@ -475,3 +483,45 @@ class Auth0Client:
             raise ExternalServiceError("Auth0 verification email sending failed")
 
         logger.info(f"Successfully triggered verification email for Auth0 user: {auth0_user_id}")
+
+    @classmethod
+    def link_identities(cls, primary_user_id: str, secondary_user_id: str) -> Dict[str, Any]:
+        """
+        Link two Auth0 user identities together.
+        
+        After linking, both identities will share the same Auth0 user_id (the primary one).
+        Users can then log in with either identity provider and get the same account.
+        
+        :param primary_user_id: The main Auth0 user ID (e.g., "auth0|db123")
+        :param secondary_user_id: The identity to link (e.g., "google-oauth2|g123")
+        :return: Updated user object from Auth0
+        :raises ExternalServiceError: If linking fails
+        """
+        url = f"https://{settings.AUTH0_DOMAIN}/api/v2/users/{primary_user_id}/identities"
+        
+        # Extract provider and user_id from secondary_user_id
+        # Format: "provider|user_id" (e.g., "google-oauth2|123456789")
+        parts = secondary_user_id.split("|", 1)
+        if len(parts) != 2:
+            raise ExternalServiceError(f"Invalid secondary_user_id format: {secondary_user_id}")
+        
+        provider = parts[0]
+        provider_user_id = parts[1]
+        
+        payload = {
+            "provider": provider,
+            "user_id": provider_user_id,
+        }
+        
+        try:
+            resp = requests.post(url, json=payload, headers=cls._headers(), timeout=10)
+        except requests.RequestException as exc:
+            logger.exception("Error calling Auth0 link_identities")
+            raise ExternalServiceError("Could not contact Auth0 to link identities") from exc
+        
+        if resp.status_code not in (200, 201):
+            logger.error("Auth0 link_identities error: %s %s", resp.status_code, resp.text)
+            raise ExternalServiceError(f"Auth0 identity linking failed: HTTP {resp.status_code}")
+        
+        logger.info(f"Successfully linked {secondary_user_id} to {primary_user_id}")
+        return resp.json()
