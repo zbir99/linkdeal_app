@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Git
 .git
 .gitignore
@@ -68,3 +69,25 @@ Thumbs.db
 **/*.bak
 **/*_backup/
 **/.git_bak/
+=======
+# Fichiers Node.js
+node_modules/
+npm-debug.log*
+
+# Fichiers de build
+dist/
+build/
+
+# Fichiers système
+.DS_Store
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Environnement
+.env
+.env.local
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810

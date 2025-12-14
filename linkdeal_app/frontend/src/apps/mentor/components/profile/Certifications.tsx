@@ -1,7 +1,14 @@
 import { FunctionComponent, useState } from 'react';
 
 export const Certifications: FunctionComponent = () => {
+<<<<<<< HEAD
   const [certifications, setCertifications] = useState<string[]>([]);
+=======
+  const [certifications, setCertifications] = useState<string[]>([
+    'AWS Certified Developer',
+    'MongoDB Professional'
+  ]);
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
   const [newCertification, setNewCertification] = useState('');
   const [certificationError, setCertificationError] = useState('');
 

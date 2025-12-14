@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import linkDealLogo from "@/assets/landing_page/images/logo (2).png";
+<<<<<<< HEAD
 import { authService } from "@/services/auth";
+=======
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
 
 const stats = [
     { value: "10K+", label: "User" },
@@ -13,6 +16,7 @@ export const ForgotPassword = (): JSX.Element => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+<<<<<<< HEAD
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -47,6 +51,13 @@ export const ForgotPassword = (): JSX.Element => {
         } finally {
             setIsLoading(false);
         }
+=======
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Simulate sending reset email
+        setIsSubmitted(true);
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
     };
 
     const handleBackToLogin = () => {
@@ -139,11 +150,14 @@ export const ForgotPassword = (): JSX.Element => {
                                             </p>
                                         </div>
                                         <form onSubmit={handleSubmit}>
+<<<<<<< HEAD
                                             {error && (
                                                 <div className="w-full mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
                                                     <p className="text-red-400 text-sm text-center">{error}</p>
                                                 </div>
                                             )}
+=======
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                             <div className="w-full mb-[24px]">
                                                 <div className="mb-2">
                                                     <label className="[font-family:'Inter-Medium',Helvetica] font-medium text-white text-sm tracking-[0] leading-[21px] whitespace-nowrap">
@@ -157,6 +171,7 @@ export const ForgotPassword = (): JSX.Element => {
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     required
+<<<<<<< HEAD
                                                     disabled={isLoading}
                                                 />
                                             </div>
@@ -168,12 +183,27 @@ export const ForgotPassword = (): JSX.Element => {
                                                 >
                                                     <div className="[font-family:'Almarai-Regular',Helvetica] font-normal text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap transition-transform duration-300 group-hover:scale-105">
                                                         {isLoading ? 'Sending...' : 'Send Reset Link'}
+=======
+                                                />
+                                            </div>
+                                            <div className="w-full mb-[20px]">
+                                                <button 
+                                                    type="submit"
+                                                    className="border-none outline-none w-full h-12 flex bg-[#7008e7] rounded-xl items-center justify-center cursor-pointer hover:bg-[#6007c5] hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300 ease-out group"
+                                                >
+                                                    <div className="[font-family:'Almarai-Regular',Helvetica] font-normal text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap transition-transform duration-300 group-hover:scale-105">
+                                                        Send Reset Link
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                                     </div>
                                                 </button>
                                             </div>
                                         </form>
                                         <div className="w-full text-center">
+<<<<<<< HEAD
                                             <button
+=======
+                                            <button 
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                                 className="[font-family:'Arimo-Regular',Helvetica] font-normal text-[#a683ff] text-sm tracking-[0] leading-[21px] whitespace-nowrap hover:text-[#8b6aff] hover:underline transition-all duration-200 ease-out transform hover:scale-105"
                                                 onClick={handleBackToLogin}
                                             >
@@ -201,7 +231,11 @@ export const ForgotPassword = (): JSX.Element => {
                                             </p>
                                         </div>
                                         <div className="w-full mb-[20px]">
+<<<<<<< HEAD
                                             <button
+=======
+                                            <button 
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                                 onClick={handleBackToLogin}
                                                 className="border-none outline-none w-full h-12 flex bg-[#7008e7] rounded-xl items-center justify-center cursor-pointer hover:bg-[#6007c5] hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300 ease-out group"
                                             >
@@ -213,7 +247,11 @@ export const ForgotPassword = (): JSX.Element => {
                                         <div className="w-full text-center">
                                             <p className="[font-family:'Arimo-Regular',Helvetica] font-normal text-[#99a1ae] text-sm tracking-[0] leading-[21px]">
                                                 Didn't receive the email?{" "}
+<<<<<<< HEAD
                                                 <button
+=======
+                                                <button 
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                                     className="[font-family:'Arimo-Regular',Helvetica] font-normal text-[#a683ff] text-sm tracking-[0] leading-[21px] whitespace-nowrap hover:text-[#8b6aff] hover:underline transition-all duration-200 ease-out transform hover:scale-105"
                                                     onClick={() => setIsSubmitted(false)}
                                                 >
@@ -224,7 +262,11 @@ export const ForgotPassword = (): JSX.Element => {
                                     </>
                                 )}
                             </div>
+<<<<<<< HEAD
 
+=======
+                            
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                             <div className="flex flex-col w-[620px] h-[455px] bg-[#ffffff0d] backdrop-blur-xl rounded-3xl border-[0.8px] border-solid border-[#fffefe1a] p-[48.8px] shadow-[0px_20px_25px_-5px_#7008e730] transition-all duration-500 ease-out hover:shadow-[0px_25px_30px_-5px_#7008e750] hover:scale-[1.01] animate-fadeInUpDelay3 self-center">
                                 <div className="flex flex-col items-center">
                                     <img
@@ -313,11 +355,14 @@ export const ForgotPassword = (): JSX.Element => {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
+<<<<<<< HEAD
                                     {error && (
                                         <div className="w-full p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
                                             <p className="text-red-400 text-sm text-center">{error}</p>
                                         </div>
                                     )}
+=======
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                     <div>
                                         <label className="[font-family:'Inter-Medium',Helvetica] text-sm text-white/80">Email Address</label>
                                         <input
@@ -327,6 +372,7 @@ export const ForgotPassword = (): JSX.Element => {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
+<<<<<<< HEAD
                                             disabled={isLoading}
                                         />
                                     </div>
@@ -336,6 +382,15 @@ export const ForgotPassword = (): JSX.Element => {
                                         className={`w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300 shadow-lg shadow-purple-500/30 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         {isLoading ? 'Sending...' : 'Send Reset Link'}
+=======
+                                        />
+                                    </div>
+                                    <button 
+                                        type="submit"
+                                        className="w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300 shadow-lg shadow-purple-500/30"
+                                    >
+                                        Send Reset Link
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                     </button>
                                 </form>
 
@@ -363,7 +418,11 @@ export const ForgotPassword = (): JSX.Element => {
                                     </p>
                                 </div>
 
+<<<<<<< HEAD
                                 <button
+=======
+                                <button 
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                                     onClick={handleBackToLogin}
                                     className="w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300 shadow-lg shadow-purple-500/30"
                                 >

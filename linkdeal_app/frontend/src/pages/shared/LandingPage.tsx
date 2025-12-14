@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+=======
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
 import linkDealLogo from "@/assets/landing_page/images/logo (2).png";
 import linkDealLogoLight from "@/assets/landing_page/images/logo_light_mode.png";
 import aiCoaching from "@/assets/landing_page/ai-coaching.svg";
@@ -21,6 +26,7 @@ import vector18 from "@/assets/landing_page/vector-18.svg";
 import vector21 from "@/assets/landing_page/vector-21.svg";
 
 export const LandingPage = (): JSX.Element => {
+<<<<<<< HEAD
     const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -75,6 +81,10 @@ export const LandingPage = (): JSX.Element => {
         }
     }, [navigate]);
 
+=======
+    const [isDarkMode, setIsDarkMode] = useState(true);
+
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
     const featureCards = [
         {
             title: 'AI-Powered Coaching',

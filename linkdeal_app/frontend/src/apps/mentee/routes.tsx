@@ -17,6 +17,7 @@ import Payment_history from './pages/Payment_history';
 import Signup from './pages/Signup';
 import Vd_call from './pages/Vd_call';
 import SessionHistory from './pages/Session_history';
+<<<<<<< HEAD
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Mentee App Routes
@@ -26,6 +27,11 @@ export const menteeRoutes: RouteObject[] = [
         path: '/mentee/signup',
         element: <Signup />
     },
+=======
+
+// Mentee App Routes
+export const menteeRoutes: RouteObject[] = [
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
     {
         path: '/mentee/step1',
         element: <Information />
@@ -38,6 +44,7 @@ export const menteeRoutes: RouteObject[] = [
         path: '/mentee/step3',
         element: <MenteeStepThree />
     },
+<<<<<<< HEAD
     // Protected routes (authentication required)
     {
         path: '/mentee/dashboard',
@@ -94,5 +101,66 @@ export const menteeRoutes: RouteObject[] = [
     {
         path: '/mentee/session-history',
         element: <ProtectedRoute><SessionHistory /></ProtectedRoute>
+=======
+    {
+        path: '/mentee/dashboard',
+        element: <Dashboard />
+    },
+    {
+        path: '/mentee/profile',
+        element: <Profile />
+    },
+    {
+        path: '/mentee/profile-modif',
+        element: <ProfileModifMentee />
+    },
+    {
+        path: '/mentee/notifications',
+        element: <Notifications />
+    },
+    {
+        path: '/mentee/ai-chat',
+        element: <AiChat />
+    },
+    {
+        path: '/mentee/find-mentor',
+        element: <FindMentor />
+    },
+    {
+        path: '/mentee/description',
+        element: <Description />
+    },
+    {
+        path: '/mentee/booking',
+        element: <Booking />
+    },
+    {
+        path: '/mentee/rate',
+        element: <Rate />
+    },
+    {
+        path: '/mentee/tickets',
+        element: <My_tickets />
+    },
+    {
+        path: '/mentee/contact-us',
+        element: <Tickets />
+    },
+    {
+        path: '/mentee/payment-history',
+        element: <Payment_history />
+    },
+    {
+        path: '/mentee/signup',
+        element: <Signup />
+    },
+    {
+        path: '/mentee/video-call',
+        element: <Vd_call />
+    },
+    {
+        path: '/mentee/session-history',
+        element: <SessionHistory />
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
     }
 ];

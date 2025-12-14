@@ -12,6 +12,7 @@ import Pricing from './pages/Pricing';
 import Support_tickets from './pages/Support_tickets';
 import { Vd } from './pages/Vd';
 import Tickets from './pages/Tickets';
+<<<<<<< HEAD
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Mentor App Routes
@@ -78,4 +79,69 @@ export const mentorRoutes: RouteObject[] = [
     path: '/mentor/tickets',
     element: <ProtectedRoute><Tickets /></ProtectedRoute>
   }
+=======
+
+// Mentor App Routes
+export const mentorRoutes: RouteObject[] = [
+    {
+      path: '/mentor/profilestep',
+      element: <MentorProfile />
+    },
+    {
+      path: '/mentor/step2',
+      element: <MentorProfile />
+    },
+    {
+      path: '/mentor/step3',
+      element: <MentorProfile />
+    },
+    {
+      path: '/mentor/profile',
+      element: <Profile />
+    },
+    {
+      path: '/mentor/dashboard',
+      element: <Dashboard />
+    },
+    {
+      path: '/mentor/notifications',
+      element: <Notifications />
+    },
+    {
+      path: '/mentor/availability',
+      element: <Availability />
+    },
+    {
+      path: '/mentor/my-mentees',
+      element: <My_Mentees />
+    },
+    {
+      path: '/mentor/history-mentee',
+      element: <History_mentee />
+    },
+    {
+      path: '/mentor/all-sessions',
+      element: <All_sessions />
+    },
+    {
+      path: '/mentor/pricing',
+      element: <Pricing />
+    },
+    {
+      path: '/mentor/support-tickets',
+      element: <Support_tickets />
+    },
+    {
+      path: '/mentor/vd',
+      element: <Vd />
+    },
+    {
+      path: '/mentor/tickets',
+      element: <Tickets />
+    },
+    {
+      path: '/mentor/success',
+      element: <Succes />
+    }
+>>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
 ];
