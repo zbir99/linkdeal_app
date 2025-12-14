@@ -16,7 +16,7 @@ from accounts.serializers import (
     SocialMentorRegisterSerializer,
     SocialMenteeRegisterSerializer,
 )
-from accounts.models import AppUser, EmailVerificationToken, PasswordResetToken
+from accounts.models import AppUser, EmailVerificationToken, PasswordResetToken, MentorProfile
 from accounts.auth0_client import Auth0Client
 from accounts.email_service import send_verification_email, send_password_reset_email
 from core.exceptions import ExternalServiceError
@@ -76,9 +76,11 @@ class MeView(APIView):
         # If user is a mentor, include skills from profile
         if role == 'mentor':
             try:
-                mentor_profile = MentorProfile.objects.get(user=user)
+                # Get the AppUser instance first (request.user is Auth0User, not AppUser)
+                app_user = AppUser.objects.get(auth0_id=user.auth0_id)
+                mentor_profile = MentorProfile.objects.get(user=app_user)
                 response_data['skills'] = mentor_profile.skills
-            except MentorProfile.DoesNotExist:
+            except (AppUser.DoesNotExist, MentorProfile.DoesNotExist):
                 response_data['skills'] = []
 
         return Response(response_data)

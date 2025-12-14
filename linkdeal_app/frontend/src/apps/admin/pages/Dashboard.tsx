@@ -1,14 +1,15 @@
 import { FunctionComponent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '@/services/auth';
 import { StatisticCards } from "../components/dashboard/StatisticCards";
 import { QuickActionCards } from "../components/dashboard/QuickActionCards";
 import { DashboardCharts } from "../components/dashboard/DashboardCharts";
-import { RecentActivity } from "../components/dashboard/RecentActivity";
 
 const PageHeader: FunctionComponent = () => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await authService.logout();
     navigate('/login');
   };
 
@@ -73,7 +74,6 @@ export const AdminDashboard: FunctionComponent = () => (
       <StatisticCards />
       <QuickActionCards />
       <DashboardCharts />
-      <RecentActivity />
     </div>
   </div>
 );
