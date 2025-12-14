@@ -1,19 +1,110 @@
+# ==============================================
+# Docker Compose for LinkDeal Application
+# ==============================================
+# Usage:
+#   Production:    docker-compose up -d
+#   Development:   docker-compose --profile dev up -d
+#   Stop:          docker-compose down
+#   Logs:          docker-compose logs -f
+# ==============================================
 
 services:
   # ========================================
-  # SERVICE FRONTEND - PRODUCTION
+  # DATABASE - PostgreSQL
+  # ========================================
+  linkdeal-db:
+    image: postgres:16-alpine
+    container_name: linkdeal-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-linkdeal}
+      POSTGRES_USER: ${POSTGRES_USER:-linkdeal_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-linkdeal_password}
+    volumes:
+      - linkdeal-db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - linkdeal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-linkdeal_user} -d ${POSTGRES_DB:-linkdeal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "app=linkdeal"
+      - "service=database"
+
+  # ========================================
+  # BACKEND - Django REST API
+  # ========================================
+  linkdeal-backend:
+    build:
+      context: ./linkdeal_app/backend/LinkDeal
+      dockerfile: Dockerfile
+    container_name: linkdeal-backend
+    restart: unless-stopped
+    depends_on:
+      linkdeal-db:
+        condition: service_healthy
+    environment:
+      # Django settings
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,linkdeal-backend}
+      
+      # Database
+      - DB_NAME=${POSTGRES_DB:-linkdeal}
+      - DB_USER=${POSTGRES_USER:-linkdeal_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-linkdeal_password}
+      - DB_HOST=linkdeal-db
+      - DB_PORT=5432
+      
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      
+      # Email Configuration
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.sendgrid.net}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@linkdeal.com}
+      
+      # Frontend URL (for CORS and email links)
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3102}
+    volumes:
+      - linkdeal-media:/app/media
+      - linkdeal-static:/app/staticfiles
+    ports:
+      - "8000:8000"
+    networks:
+      - linkdeal-network
+    labels:
+      - "app=linkdeal"
+      - "service=backend"
+
+  # ========================================
+  # FRONTEND - React/Vite (Production)
   # ========================================
   linkdeal-frontend:
     build:
       context: ./linkdeal_app/frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
+        - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
+        - VITE_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
     container_name: linkdeal-frontend
+    restart: unless-stopped
+    depends_on:
+      - linkdeal-backend
     ports:
       - "3102:80"
-    restart: unless-stopped
     networks:
       - linkdeal-network
-    # Variables d'environnement pour le frontend
     environment:
       - NODE_ENV=production
     labels:
@@ -21,7 +112,7 @@ services:
       - "service=frontend"
 
   # ========================================
-  # SERVICE FRONTEND - DEVELOPPEMENT (optionnel)
+  # FRONTEND - Development (Hot Reload)
   # ========================================
   linkdeal-frontend-dev:
     image: node:20-alpine
@@ -32,6 +123,8 @@ services:
       - /app/node_modules
     ports:
       - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     networks:
       - linkdeal-network
@@ -41,8 +134,65 @@ services:
       - "app=linkdeal"
       - "service=frontend-dev"
 
+  # ========================================
+  # BACKEND - Development (Auto Reload)
+  # ========================================
+  linkdeal-backend-dev:
+    build:
+      context: ./linkdeal_app/backend/LinkDeal
+      dockerfile: Dockerfile.dev
+    container_name: linkdeal-backend-dev
+    volumes:
+      - ./linkdeal_app/backend/LinkDeal:/app
+      - linkdeal-media:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - ALLOWED_HOSTS=*
+      - DB_NAME=${POSTGRES_DB:-linkdeal}
+      - DB_USER=${POSTGRES_USER:-linkdeal_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-linkdeal_password}
+      - DB_HOST=linkdeal-db
+      - DB_PORT=5432
+    depends_on:
+      linkdeal-db:
+        condition: service_healthy
+    networks:
+      - linkdeal-network
+    profiles:
+      - dev
+    labels:
+      - "app=linkdeal"
+      - "service=backend-dev"
+
+  # ========================================
+  # REDIS - Cache & Session Store (Optional)
+  # ========================================
+  linkdeal-redis:
+    image: redis:7-alpine
+    container_name: linkdeal-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - linkdeal-redis-data:/data
+    networks:
+      - linkdeal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - full
+    labels:
+      - "app=linkdeal"
+      - "service=redis"
+
 # ========================================
-# RÉSEAUX
+# NETWORKS
 # ========================================
 networks:
   linkdeal-network:
@@ -50,8 +200,14 @@ networks:
     name: linkdeal-network
 
 # ========================================
-# VOLUMES (pour futures bases de données)
+# VOLUMES
 # ========================================
-# volumes:
-#   linkdeal-db-data:
-#     name: linkdeal-db-data
+volumes:
+  linkdeal-db-data:
+    name: linkdeal-db-data
+  linkdeal-media:
+    name: linkdeal-media
+  linkdeal-static:
+    name: linkdeal-static
+  linkdeal-redis-data:
+    name: linkdeal-redis-data

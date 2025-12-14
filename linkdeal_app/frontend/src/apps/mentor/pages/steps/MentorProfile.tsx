@@ -1,6 +1,8 @@
-import { useState, useRef, ChangeEvent, useEffect } from "react";
+import { useState, useRef, ChangeEvent, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/auth";
+import { useNavigationGuard } from "@/hooks/useNavigationGuard";
+import { UnsavedChangesModal } from "@/components/UnsavedChangesModal";
 
 export const MentorProfile = (): JSX.Element => {
     const [isHovered, setIsHovered] = useState(false);
@@ -49,6 +51,32 @@ export const MentorProfile = (): JSX.Element => {
         password: "",
         confirmPassword: "",
         bio: "",
+    });
+
+    // Determine if the form has unsaved changes
+    const hasUnsavedChanges = useMemo(() => {
+        return !!(
+            formData.fullName ||
+            formData.professionalTitle ||
+            formData.location ||
+            formData.linkedinProfile ||
+            formData.language ||
+            formData.email ||
+            formData.bio ||
+            profileImage ||
+            cvFile
+        );
+    }, [formData, profileImage, cvFile]);
+
+    // Navigation guard - warns user about losing changes
+    const {
+        showModal: showUnsavedModal,
+        handleStayOnPage,
+        handleLeaveAnyway,
+    } = useNavigationGuard({
+        when: hasUnsavedChanges,
+        message: 'You have unsaved registration data. Are you sure you want to leave?',
+        allowedPaths: ['/mentor/success', '/login', '/signup', '/mentee/step1', '/mentee/step2', '/mentee/step3'],  // Allow navigation to other signup flows
     });
 
     // Check for social auth on component mount
@@ -415,6 +443,15 @@ export const MentorProfile = (): JSX.Element => {
 
     return (
         <>
+            {/* Unsaved Changes Warning Modal */}
+            <UnsavedChangesModal
+                isOpen={showUnsavedModal}
+                onStay={handleStayOnPage}
+                onLeave={handleLeaveAnyway}
+                title="Leave Registration?"
+                message="You have unsaved registration data. Your progress will be lost if you leave this page."
+            />
+
             {/* Account Linking Modal */}
             {showLinkingModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">

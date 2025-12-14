@@ -38,7 +38,8 @@ export interface UserProfile {
 
 class AuthService {
   // Login user - calls Auth0 via Vite proxy to bypass CORS
-  async login(credentials: { email: string; password: string }): Promise<AuthResponse> {
+  // rememberMe: true = 30 days, false = session only
+  async login(credentials: { email: string; password: string }, rememberMe: boolean = false): Promise<AuthResponse> {
     try {
       // Call Auth0's /oauth/token endpoint via Vite proxy (to bypass CORS)
       const auth0Response = await axios.post(
@@ -63,10 +64,42 @@ class AuthService {
 
       // Auth0 returns tokens: {access_token, id_token, token_type, expires_in}
       if (auth0Response.data.access_token) {
-        // Store tokens securely
-        localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, auth0Response.data.access_token)
-        if (auth0Response.data.id_token) {
-          localStorage.setItem('id_token', auth0Response.data.id_token)
+        // Get Auth0's actual token expiry (in seconds, typically 86400 = 24 hours)
+        const expiresIn = auth0Response.data.expires_in || 86400; // Default to 24 hours if not provided
+
+        if (rememberMe) {
+          // Remember Me: Store in localStorage (persists across browser sessions)
+          // Use the minimum of Auth0's expiry or 30 days for "remember me"
+          const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
+          const effectiveExpiry = Math.min(expiresIn, thirtyDaysInSeconds);
+          const expiryDate = new Date();
+          expiryDate.setSeconds(expiryDate.getSeconds() + effectiveExpiry);
+
+          localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, auth0Response.data.access_token);
+          localStorage.setItem('token_expiry', expiryDate.toISOString());
+          localStorage.setItem('remember_me', 'true');
+          if (auth0Response.data.id_token) {
+            localStorage.setItem('id_token', auth0Response.data.id_token);
+          }
+          // Clear any sessionStorage tokens from previous session-only logins
+          sessionStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+          sessionStorage.removeItem('token_expiry');
+          sessionStorage.removeItem('id_token');
+        } else {
+          // Session only: Store in sessionStorage (clears when browser closes)
+          const expiryDate = new Date();
+          expiryDate.setSeconds(expiryDate.getSeconds() + expiresIn);
+
+          sessionStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, auth0Response.data.access_token);
+          sessionStorage.setItem('token_expiry', expiryDate.toISOString());
+          if (auth0Response.data.id_token) {
+            sessionStorage.setItem('id_token', auth0Response.data.id_token);
+          }
+          // Clear any localStorage tokens from previous "remember me" logins
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+          localStorage.removeItem('token_expiry');
+          localStorage.removeItem('remember_me');
+          localStorage.removeItem('id_token');
         }
 
         // Get user profile from Django backend using the access token
@@ -77,22 +110,36 @@ class AuthService {
             email: profileResponse.data.email,
             role: profileResponse.data.role,
           }
-          localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(userData))
+
+          // Store user data in the same storage as the token
+          if (rememberMe) {
+            localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(userData));
+          } else {
+            sessionStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(userData));
+          }
 
           return {
             success: true,
             data: userData
           }
-        } catch (profileError) {
+        } catch (profileError: any) {
           console.error('Failed to get user profile:', profileError)
-          // Still return success since login worked, but with minimal data
+          // Clear tokens since we can't get the profile - don't allow login with unknown role
+          if (rememberMe) {
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+            localStorage.removeItem('token_expiry');
+            localStorage.removeItem('remember_me');
+            localStorage.removeItem('id_token');
+          } else {
+            sessionStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+            sessionStorage.removeItem('token_expiry');
+            sessionStorage.removeItem('id_token');
+          }
+
+          // Return error - don't default to a role that might be wrong
           return {
-            success: true,
-            data: {
-              id: 'unknown',
-              email: credentials.email,
-              role: 'mentee' // Default role
-            }
+            success: false,
+            message: profileError?.message || 'Failed to load user profile. Please try again or contact support.'
           }
         }
       } else {
@@ -1121,26 +1168,88 @@ class AuthService {
       // Continue with local logout even if API fails
     }
 
-    // Clear local storage
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN)
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.USER)
+    // Clear localStorage (remember me tokens)
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+    localStorage.removeItem('token_expiry');
+    localStorage.removeItem('remember_me');
+    localStorage.removeItem('id_token');
 
-    // Clear any session storage items from social auth
-    sessionStorage.removeItem('social_auth_email')
-    sessionStorage.removeItem('social_auth_name')
+    // Clear sessionStorage (session-only tokens)
+    sessionStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+    sessionStorage.removeItem('token_expiry');
+    sessionStorage.removeItem('id_token');
+
+    // Clear any social auth session data
+    sessionStorage.removeItem('social_auth_email');
+    sessionStorage.removeItem('social_auth_name');
+    sessionStorage.removeItem('social_auth_pending');
+    sessionStorage.removeItem('social_auth_provider');
+    sessionStorage.removeItem('social_auth_picture');
   }
 
   // Check if user is authenticated
+  // Checks both localStorage (remember me) and sessionStorage (session only)
+  // Always validates token expiry
   isAuthenticated(): boolean {
-    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN)
-    const user = localStorage.getItem(LOCAL_STORAGE_KEYS.USER)
-    return !!(token && user)
+    // First check localStorage (remember me tokens)
+    let token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+    let user = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+    let tokenExpiry = localStorage.getItem('token_expiry');
+    let storageType: 'local' | 'session' = 'local';
+
+    // If not in localStorage, check sessionStorage (session-only tokens)
+    if (!token) {
+      token = sessionStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+      user = sessionStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+      tokenExpiry = sessionStorage.getItem('token_expiry');
+      storageType = 'session';
+    }
+
+    if (!token || !user) {
+      return false;
+    }
+
+    // ALWAYS check if token has expired (regardless of rememberMe)
+    if (tokenExpiry) {
+      const expiryDate = new Date(tokenExpiry);
+      if (new Date() > expiryDate) {
+        // Token expired - clear auth data from the appropriate storage
+        console.log('Token expired - logging out');
+        if (storageType === 'local') {
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+          localStorage.removeItem('token_expiry');
+          localStorage.removeItem('remember_me');
+          localStorage.removeItem('id_token');
+        } else {
+          sessionStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+          sessionStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+          sessionStorage.removeItem('token_expiry');
+          sessionStorage.removeItem('id_token');
+        }
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  // Get stored user data
+  // Get stored user data (checks both localStorage and sessionStorage)
   getUser(): any | null {
-    const userStr = localStorage.getItem(LOCAL_STORAGE_KEYS.USER)
-    return userStr ? JSON.parse(userStr) : null
+    // First check localStorage
+    let userStr = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+    // If not found, check sessionStorage
+    if (!userStr) {
+      userStr = sessionStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+    }
+    return userStr ? JSON.parse(userStr) : null;
+  }
+
+  // Get the stored token (checks both localStorage and sessionStorage)
+  getToken(): string | null {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN) || sessionStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
   }
 
   // Social registration (for Google/LinkedIn)
@@ -1292,6 +1401,26 @@ class AuthService {
   async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
     try {
       const response = await api.post('auth/password/reset/', { email })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Confirm password reset
+  async confirmPasswordReset(token: string, password: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.post('auth/reset-password/confirm/', { token, password })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Verify email
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.post(`auth/verify-email/${token}/`)
       return response.data
     } catch (error) {
       throw error

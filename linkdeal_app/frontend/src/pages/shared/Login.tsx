@@ -15,12 +15,72 @@ export const Login = (): JSX.Element => {
         email: '',
         password: ''
     });
+    const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // On page load: Clear any stale/orphaned social auth data
-    // Users visiting login page want to start fresh - clear any incomplete social auth
+    // On page load: Check authentication and clear stale social auth data
     useEffect(() => {
+        // Check if user is already authenticated - check both localStorage (rememberMe) and sessionStorage (session-only)
+        let token = localStorage.getItem('token');
+        let user = localStorage.getItem('user');
+        let tokenExpiry = localStorage.getItem('token_expiry');
+        let storageType: 'local' | 'session' = 'local';
+
+        // If not in localStorage, check sessionStorage
+        if (!token) {
+            token = sessionStorage.getItem('token');
+            user = sessionStorage.getItem('user');
+            tokenExpiry = sessionStorage.getItem('token_expiry');
+            storageType = 'session';
+        }
+
+        if (token && user) {
+            // Check if token is still valid (not expired)
+            if (tokenExpiry) {
+                const expiryDate = new Date(tokenExpiry);
+                if (new Date() > expiryDate) {
+                    // Token expired - clear and stay on login
+                    console.log('Token expired - clearing auth data');
+                    if (storageType === 'local') {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('token_expiry');
+                        localStorage.removeItem('remember_me');
+                        localStorage.removeItem('id_token');
+                    } else {
+                        sessionStorage.removeItem('token');
+                        sessionStorage.removeItem('user');
+                        sessionStorage.removeItem('token_expiry');
+                        sessionStorage.removeItem('id_token');
+                    }
+                } else {
+                    // Token still valid - redirect to dashboard
+                    try {
+                        const userData = JSON.parse(user);
+                        const dashboardPath = `/${userData.role || 'mentee'}/dashboard`;
+                        console.log('User already authenticated - redirecting to:', dashboardPath);
+                        navigate(dashboardPath, { replace: true });
+                        return;
+                    } catch (e) {
+                        console.error('Error parsing user data:', e);
+                    }
+                }
+            } else {
+                // No expiry set but token exists - still valid, redirect
+                try {
+                    const userData = JSON.parse(user);
+                    const dashboardPath = `/${userData.role || 'mentee'}/dashboard`;
+                    console.log('User already authenticated - redirecting to:', dashboardPath);
+                    navigate(dashboardPath, { replace: true });
+                    return;
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                }
+            }
+        }
+
+        // Clear any incomplete social auth data
         const isSocialAuthPending = sessionStorage.getItem('social_auth_pending') === 'true';
         const hasSocialData = sessionStorage.getItem('social_auth_email') !== null ||
             sessionStorage.getItem('social_auth_picture') !== null;
@@ -42,10 +102,15 @@ export const Login = (): JSX.Element => {
             sessionStorage.removeItem('social_auth_provider');
             sessionStorage.removeItem('social_auth_existing_role');
             sessionStorage.removeItem('social_auth_requires_linking');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            // Also clear any stale tokens that might have been from the abandoned social auth
+            if (!token) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('user');
+            }
         }
-    }, []);
+    }, [navigate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -62,7 +127,7 @@ export const Login = (): JSX.Element => {
         setError('');
 
         try {
-            const response = await authService.login(formData);
+            const response = await authService.login(formData, rememberMe);
 
             if (response.success) {
                 // Navigate to role-specific dashboard
@@ -196,6 +261,8 @@ export const Login = (): JSX.Element => {
                                         <input
                                             type="checkbox"
                                             id="remember"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
                                             className="w-4 h-4 appearance-none bg-[#1A1A2E] border-[0.8px] border-solid border-[#fffefe1a] rounded focus:ring-2 focus:ring-[#7008e7] focus:ring-offset-0 focus:outline-none transition-all duration-200 ease-out hover:border-[#a683ff] cursor-pointer checked:bg-[#7008e7] checked:border-transparent checked:bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgNEwzLjUgNkw5IDEiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-center bg-no-repeat"
                                         />
                                         <label htmlFor="remember" className="[font-family:'Arimo-Regular',Helvetica] font-normal text-[#99a1ae] text-sm tracking-[0] leading-[21px] whitespace-nowrap ml-2 cursor-pointer hover:text-white transition-all duration-200 ease-out">

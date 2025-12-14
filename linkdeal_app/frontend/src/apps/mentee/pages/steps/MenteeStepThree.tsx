@@ -28,6 +28,8 @@ export const MenteeStepThree = (): JSX.Element => {
     // Check if user is coming from social auth
     const isSocialAuth = sessionStorage.getItem('social_auth_pending') === 'true';
 
+
+
     // Pre-fill frequency from context when navigating back
     useEffect(() => {
         if (signupData.session_frequency) {
@@ -174,6 +176,7 @@ export const MenteeStepThree = (): JSX.Element => {
 
     return (
         <>
+
             {/* Account Linking Modal */}
             {showLinkingModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">

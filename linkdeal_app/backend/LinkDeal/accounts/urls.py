@@ -9,6 +9,9 @@ from accounts.views import (
     MeView,
     LogoutView,
     PasswordResetRequestView,
+    PasswordResetConfirmView,
+    VerifyEmailView,
+    ResendVerificationEmailView,
 )
 
 from accounts.admin_views import (
@@ -44,10 +47,17 @@ urlpatterns = [
     path("register/request-linking/", RequestLinkingView.as_view(), name="request-linking"),
     path("register/verify-linking/<str:token>/", VerifyLinkingView.as_view(), name="verify-linking"),
     
-    path("me/", MeView.as_view(), name="me"),
-    path("logout/", LogoutView.as_view(), name="logout"),
+    # Email verification
+    path("verify-email/<str:token>/", VerifyEmailView.as_view(), name="verify-email"),
+    path("resend-verification/", ResendVerificationEmailView.as_view(), name="resend-verification"),
+    
+    # Password reset
     path("password/reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path("reset-password/", PasswordResetRequestView.as_view(), name="password-reset-alias"),
+    path("reset-password/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
+    
+    path("me/", MeView.as_view(), name="me"),
+    path("logout/", LogoutView.as_view(), name="logout"),
 
     # Admin mentor review
     path("admin/mentors/pending/", PendingMentorsView.as_view(), name="pending-mentors"),

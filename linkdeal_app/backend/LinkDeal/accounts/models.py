@@ -167,6 +167,12 @@ class MentorProfile(models.Model):
         default="pending"
     )
 
+    skills = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of skills (e.g., ['Python', 'Django', 'Machine Learning'])"
+    )
+
     # Ban metadata (audit)
     banned_at = models.DateTimeField(
         null=True,
@@ -449,4 +455,168 @@ class AccountLinkingVerification(models.Model):
         self.verified = True
         self.verified_at = timezone.now()
         self.save(update_fields=["verified", "verified_at"])
+        return True
+
+
+# -------------------------------------------------------------------
+# 5. EMAIL VERIFICATION TOKEN MODEL
+# -------------------------------------------------------------------
+
+class EmailVerificationToken(models.Model):
+    """
+    Stores tokens for email verification.
+    Tokens expire after 24 hours.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    user = models.ForeignKey(
+        AppUser,
+        on_delete=models.CASCADE,
+        related_name="email_verification_tokens"
+    )
+    
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Cryptographically secure verification token"
+    )
+    
+    expires_at = models.DateTimeField(
+        help_text="When this token expires (default: 24 hours)"
+    )
+    
+    verified = models.BooleanField(
+        default=False,
+        help_text="Whether the email has been verified with this token"
+    )
+    
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the email was verified"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["token"]),
+            models.Index(fields=["expires_at"]),
+        ]
+    
+    def __str__(self):
+        return f"EmailVerificationToken({self.user.email})"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate token if not provided
+        if not self.token:
+            self.token = secrets.token_urlsafe(48)
+        
+        # Auto-set expiration if not provided (24 hours from now)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=24)
+        
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if the verification token has expired."""
+        return timezone.now() > self.expires_at
+    
+    def verify(self):
+        """Mark the email as verified."""
+        if self.verified:
+            return False  # Already verified
+        if self.is_expired():
+            return False  # Expired
+        
+        self.verified = True
+        self.verified_at = timezone.now()
+        self.save(update_fields=["verified", "verified_at"])
+        return True
+
+
+# -------------------------------------------------------------------
+# 6. PASSWORD RESET TOKEN MODEL
+# -------------------------------------------------------------------
+
+class PasswordResetToken(models.Model):
+    """
+    Stores tokens for password reset.
+    Tokens expire after 1 hour.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    email = models.EmailField(
+        help_text="Email address for password reset"
+    )
+    
+    auth0_user_id = models.CharField(
+        max_length=200,
+        help_text="Auth0 user ID for updating password"
+    )
+    
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Cryptographically secure reset token"
+    )
+    
+    expires_at = models.DateTimeField(
+        help_text="When this token expires (default: 1 hour)"
+    )
+    
+    used = models.BooleanField(
+        default=False,
+        help_text="Whether this token has been used"
+    )
+    
+    used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the token was used"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["token"]),
+            models.Index(fields=["expires_at"]),
+            models.Index(fields=["email"]),
+        ]
+    
+    def __str__(self):
+        return f"PasswordResetToken({self.email})"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate token if not provided
+        if not self.token:
+            self.token = secrets.token_urlsafe(48)
+        
+        # Auto-set expiration if not provided (1 hour from now)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=1)
+        
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if the reset token has expired."""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if the token is valid (not expired and not used)."""
+        return not self.is_expired() and not self.used
+    
+    def mark_as_used(self):
+        """Mark the token as used."""
+        if self.used:
+            return False  # Already used
+        if self.is_expired():
+            return False  # Expired
+        
+        self.used = True
+        self.used_at = timezone.now()
+        self.save(update_fields=["used", "used_at"])
         return True

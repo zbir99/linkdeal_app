@@ -1,6 +1,6 @@
 import logging
 
-from rest_framework.throttling import ScopedRateThrottle, AnonRateThrottle
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,8 +16,9 @@ from accounts.serializers import (
     SocialMentorRegisterSerializer,
     SocialMenteeRegisterSerializer,
 )
-from accounts.models import AppUser
+from accounts.models import AppUser, EmailVerificationToken, PasswordResetToken
 from accounts.auth0_client import Auth0Client
+from accounts.email_service import send_verification_email, send_password_reset_email
 from core.exceptions import ExternalServiceError
 
 logger = logging.getLogger(__name__)
@@ -62,17 +63,25 @@ class MeView(APIView):
         email = user.email or app_metadata.get("email")
         role = user.role or app_metadata.get("role")
 
-        return Response({
+        # Custom response construction
+        response_data = {
             "auth0_id": user.auth0_id,
             "email": email,
-            # 'role' is the primary/derived role (convenience field for quick access)
-            # 'roles' is the full RBAC roles array (can contain multiple roles)
             "role": role,
             "roles": user.roles,
-            # 'app_metadata' contains Auth0 metadata including 'role' for backward compatibility
             "app_metadata": app_metadata,
             "permissions": user.permissions,
-        })
+        }
+
+        # If user is a mentor, include skills from profile
+        if role == 'mentor':
+            try:
+                mentor_profile = MentorProfile.objects.get(user=user)
+                response_data['skills'] = mentor_profile.skills
+            except MentorProfile.DoesNotExist:
+                response_data['skills'] = []
+
+        return Response(response_data)
 
 
 # ---------------------------------------------------------------
@@ -189,18 +198,74 @@ class LogoutView(APIView):
 
 
 # ---------------------------------------------------------------
-# PASSWORD RESET (AUTH0)
+# EMAIL VERIFICATION
 # ---------------------------------------------------------------
 
-class PasswordResetRequestView(APIView):
+class VerifyEmailView(APIView):
     """
-    POST /auth/password/reset/  (alias: /auth/reset-password/)
-    Always returns success message (no email existence leak).
+    POST /auth/verify-email/<token>/
+    Verifies email using token sent via email.
     """
     permission_classes = []  # Public
 
+    def post(self, request, token):
+        """
+        Verify email using the provided token.
+        """
+        try:
+            verification = EmailVerificationToken.objects.get(token=token)
+        except EmailVerificationToken.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Invalid verification link."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Check if already verified
+        if verification.verified:
+            return Response(
+                {"success": True, "message": "Email already verified."},
+                status=status.HTTP_200_OK,
+            )
+        
+        # Check if expired
+        if verification.is_expired():
+            return Response(
+                {"success": False, "message": "Verification link has expired. Please request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Verify the email
+        try:
+            # Mark as verified in local DB
+            verification.verify()
+            
+            # Mark as verified in Auth0
+            Auth0Client.mark_email_verified(verification.user.auth0_id)
+            
+            logger.info(f"Email verified for user: {verification.user.email}")
+            
+            return Response(
+                {"success": True, "message": "Email verified successfully! You can now log in."},
+                status=status.HTTP_200_OK,
+            )
+        except ExternalServiceError as e:
+            logger.error(f"Failed to verify email in Auth0: {e}")
+            return Response(
+                {"success": False, "message": "Failed to verify email. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ResendVerificationEmailView(APIView):
+    """
+    POST /auth/resend-verification/
+    Resends verification email to the user.
+    """
+    permission_classes = []  # Public
+    throttle_classes = []  # No throttling (or configure in settings)
+
     def post(self, request):
-        email = (request.data.get("email") or "").strip()
+        email = (request.data.get("email") or "").strip().lower()
 
         if not email:
             return Response(
@@ -208,7 +273,6 @@ class PasswordResetRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate email format (avoid malformed requests)
         try:
             validate_email(email)
         except ValidationError:
@@ -217,30 +281,127 @@ class PasswordResetRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Default: do not leak existence; always return success
+        # Always return success to prevent email enumeration
         try:
-            # Only attempt reset for DB (auth0) identities.
-            # Social-only users (Google/LinkedIn) will bypass this call but still get generic success.
+            user = AppUser.objects.get(email=email)
+            
+            # Get user's name from profile
+            user_name = email
+            if hasattr(user, 'mentee_profile') and user.mentee_profile:
+                user_name = user.mentee_profile.full_name
+            elif hasattr(user, 'mentor_profile') and user.mentor_profile:
+                user_name = user.mentor_profile.full_name
+            
+            # Create new verification token
+            token = EmailVerificationToken.objects.create(user=user)
+            
+            # Send email
+            send_verification_email(
+                recipient_email=email,
+                user_name=user_name,
+                verification_token=token.token,
+            )
+            
+            logger.info(f"Resent verification email to: {email}")
+        except AppUser.DoesNotExist:
+            logger.info(f"Verification email requested for non-existent user: {email}")
+        except Exception as e:
+            logger.error(f"Failed to resend verification email to {email}: {e}")
+
+        return Response(
+            {"success": True, "message": "If an account exists, a verification email has been sent."},
+            status=status.HTTP_200_OK,
+        )
+
+
+# ---------------------------------------------------------------
+# PASSWORD RESET
+# ---------------------------------------------------------------
+
+class PasswordResetRequestView(APIView):
+    """
+    POST /auth/password/reset/  (alias: /auth/reset-password/)
+    Always returns success message (no email existence leak).
+    Now uses Django email service instead of Auth0.
+    """
+    permission_classes = []  # Public
+    throttle_classes = []  # No throttling (or configure in settings)
+
+    def post(self, request):
+        email = (request.data.get("email") or "").strip().lower()
+
+        if not email:
+            return Response(
+                {"success": False, "message": "Email is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response(
+                {"success": False, "message": "Invalid email format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Always return success to prevent email enumeration
+        try:
+            # Check if user has a DB identity (not social-only)
             has_db_identity = False
+            auth0_user_id = None
             try:
                 has_db_identity = Auth0Client.user_has_db_identity(email=email)
+                if has_db_identity:
+                    # Get the Auth0 user ID
+                    users = Auth0Client.find_users_by_email(email=email)
+                    for user in users:
+                        identities = user.get("identities") or []
+                        for identity in identities:
+                            if identity.get("provider") == "auth0":
+                                auth0_user_id = user.get("user_id")
+                                break
+                        if auth0_user_id:
+                            break
             except ExternalServiceError as exc:
-                # If Auth0 check fails, log and continue with generic success
                 logger.warning("Could not verify DB identity for %s: %s", email, exc)
 
-            if has_db_identity:
+            if has_db_identity and auth0_user_id:
+                # Get user name from local DB if available
+                user_name = email
                 try:
-                    Auth0Client.send_password_reset_email(email=email)
-                except ExternalServiceError as exc:
-                    logger.warning("Password reset request failed for %s: %s", email, exc)
-                except Exception as exc:
-                    logger.warning("Unexpected error during password reset for %s: %s", email, exc)
+                    app_user = AppUser.objects.get(email=email)
+                    if hasattr(app_user, 'mentee_profile') and app_user.mentee_profile:
+                        user_name = app_user.mentee_profile.full_name
+                    elif hasattr(app_user, 'mentor_profile') and app_user.mentor_profile:
+                        user_name = app_user.mentor_profile.full_name
+                except AppUser.DoesNotExist:
+                    pass
+                
+                # Invalidate any existing reset tokens for this email
+                PasswordResetToken.objects.filter(email=email, used=False).update(used=True)
+                
+                # Create new reset token
+                token = PasswordResetToken.objects.create(
+                    email=email,
+                    auth0_user_id=auth0_user_id,
+                )
+                
+                # Send password reset email
+                try:
+                    send_password_reset_email(
+                        recipient_email=email,
+                        user_name=user_name,
+                        reset_token=token.token,
+                    )
+                    logger.info(f"Sent password reset email to: {email}")
+                except Exception as e:
+                    logger.error(f"Failed to send password reset email to {email}: {e}")
             else:
-                # Social-only users: no reset attempt, but keep response generic
-                logger.info("Password reset requested for social-only user (email=%s); skipping Auth0 reset call.", email)
+                # Social-only users or non-existent emails
+                logger.info(f"Password reset requested for social-only/non-existent user: {email}")
 
         except Exception as exc:
-            # Any unexpected error should not leak details
             logger.warning("Unexpected error during password reset for %s: %s", email, exc)
 
         return Response(
@@ -251,3 +412,80 @@ class PasswordResetRequestView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+class PasswordResetConfirmView(APIView):
+    """
+    POST /auth/reset-password/confirm/
+    Validates token and updates password in Auth0.
+    """
+    permission_classes = []  # Public
+    throttle_classes = []  # No throttling (or configure in settings)
+
+    def post(self, request):
+        token = (request.data.get("token") or "").strip()
+        new_password = request.data.get("password") or ""
+
+        if not token:
+            return Response(
+                {"success": False, "message": "Reset token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not new_password:
+            return Response(
+                {"success": False, "message": "New password is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate password strength
+        if len(new_password) < 8:
+            return Response(
+                {"success": False, "message": "Password must be at least 8 characters long."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Find the token
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+        except PasswordResetToken.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Invalid or expired reset link."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if already used
+        if reset_token.used:
+            return Response(
+                {"success": False, "message": "This reset link has already been used."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if expired
+        if reset_token.is_expired():
+            return Response(
+                {"success": False, "message": "Reset link has expired. Please request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update password in Auth0
+        try:
+            Auth0Client.update_user_password(
+                auth0_user_id=reset_token.auth0_user_id,
+                new_password=new_password,
+            )
+            
+            # Mark token as used
+            reset_token.mark_as_used()
+            
+            logger.info(f"Password reset successful for: {reset_token.email}")
+            
+            return Response(
+                {"success": True, "message": "Password reset successful! You can now log in with your new password."},
+                status=status.HTTP_200_OK,
+            )
+        except ExternalServiceError as e:
+            logger.error(f"Failed to update password in Auth0: {e}")
+            return Response(
+                {"success": False, "message": "Failed to reset password. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

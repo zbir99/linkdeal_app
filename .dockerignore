@@ -1,20 +1,70 @@
-# Fichiers Node.js
-node_modules/
-npm-debug.log*
-
-# Fichiers de build
-dist/
-build/
-
-# Fichiers système
-.DS_Store
-.git/
+# Git
+.git
 .gitignore
 
-# IDE
-.vscode/
-.idea/
+# Virtual environments
+**/venv/
+**/.venv/
+**/env/
 
-# Environnement
-.env
-.env.local
+# Node modules
+**/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+**/.Python
+**/build/
+**/develop-eggs/
+**/dist/
+**/downloads/
+**/eggs/
+**/.eggs/
+**/lib/
+**/lib64/
+**/parts/
+**/sdist/
+**/var/
+**/wheels/
+**/*.egg-info/
+**/.installed.cfg
+**/*.egg
+
+# Django
+**/*.log
+**/db.sqlite3
+**/staticfiles/
+
+# Testing
+**/coverage/
+**/.pytest_cache/
+**/htmlcov/
+**/.coverage
+
+# Documentation
+**/*.md
+**/docs/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Backups
+**/*.bak
+**/*_backup/
+**/.git_bak/

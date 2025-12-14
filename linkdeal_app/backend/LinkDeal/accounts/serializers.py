@@ -6,10 +6,10 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
-from accounts.models import AppUser, MentorProfile, MenteeProfile
+from accounts.models import AppUser, MentorProfile, MenteeProfile, EmailVerificationToken
 from accounts.auth0_client import Auth0Client
 from accounts.services import IdentityMappingService
-from accounts.email_service import send_welcome_email
+from accounts.email_service import send_welcome_email, send_verification_email
 from core.exceptions import ExternalServiceError
 from rest_framework import exceptions
 
@@ -134,8 +134,6 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
                 role="mentee",
                 approval_status="approved",  # ✅ mentees are allowed to log in immediately
             )
-            # Trigger verification email for DB users (non-social)
-            Auth0Client.send_verification_email(auth0_user_id=auth0_user["user_id"])
         except ExternalServiceError:
             # Already wrapped in our custom exception format
             raise
@@ -250,6 +248,17 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
             )
         except Exception as e:
             logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
+
+        # Send verification email (Django-based with LinkDeal styling)
+        try:
+            verification_token = EmailVerificationToken.objects.create(user=app_user)
+            send_verification_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                verification_token=verification_token.token,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {email}: {e}", exc_info=True)
 
         return profile
 
@@ -456,6 +465,15 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
     country = serializers.CharField(max_length=100)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
     cv = serializers.FileField(required=True)
+    
+    # NEW FIELDS
+    skills = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        allow_empty=True,
+        max_length=20,
+        help_text="List of skills (max 20 skills, 50 chars each)"
+    )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -470,8 +488,6 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
                 role="mentor",
                 approval_status="pending",  # 🔴 critical: pending mentors are blocked at login
             )
-            # Trigger verification email for DB users (non-social)
-            Auth0Client.send_verification_email(auth0_user_id=auth0_user["user_id"])
         except ExternalServiceError:
             raise
         except Exception as e:
@@ -552,6 +568,8 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
                     "profile_picture": validated_data.get("profile_picture"),
                     "cv": validated_data["cv"],
                     "status": "pending",  # Always pending for new mentor registrations
+                    # NEW FIELD
+                    "skills": validated_data.get("skills", []),
                 }
             )
             
@@ -569,6 +587,8 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
                     profile.profile_picture = validated_data["profile_picture"]
                 if validated_data.get("cv"):
                     profile.cv = validated_data["cv"]
+                # NEW FIELD
+                profile.skills = validated_data.get("skills", profile.skills)
                 # Only set to pending if currently pending (don't override approved/rejected/banned)
                 if profile.status == "pending":
                     profile.status = "pending"
@@ -588,6 +608,17 @@ class MentorRegisterSerializer(BaseRegisterSerializer):
             )
         except Exception as e:
             logger.error(f"Failed to send welcome email to {email}: {e}", exc_info=True)
+
+        # Send verification email (Django-based with LinkDeal styling)
+        try:
+            verification_token = EmailVerificationToken.objects.create(user=app_user)
+            send_verification_email(
+                recipient_email=email,
+                user_name=profile.full_name,
+                verification_token=verification_token.token,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {email}: {e}", exc_info=True)
 
         return profile
 
@@ -614,6 +645,15 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
     profile_picture = serializers.ImageField(required=False, allow_null=True)
     cv = serializers.FileField(required=True)
     link_consent = serializers.BooleanField(required=False, default=False)
+    
+    # NEW FIELDS
+    skills = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        allow_empty=True,
+        max_length=20,
+        help_text="List of skills (max 20 skills, 50 chars each)"
+    )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -708,6 +748,8 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                     "profile_picture": validated_data.get("profile_picture"),
                     "cv": validated_data["cv"],
                     "status": "pending",  # Always pending for new mentor registrations
+                    # NEW FIELD
+                    "skills": validated_data.get("skills", []),
                 }
             )
             
@@ -725,6 +767,8 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                     profile.profile_picture = validated_data["profile_picture"]
                 if validated_data.get("cv"):
                     profile.cv = validated_data["cv"]
+                # NEW FIELD
+                profile.skills = validated_data.get("skills", profile.skills)
                 # Only set to pending if currently pending (don't override approved/rejected/banned)
                 if profile.status == "pending":
                     profile.status = "pending"
@@ -777,6 +821,7 @@ class AdminMentorSerializer(serializers.ModelSerializer):
             "created_at",
             "profile_picture_url",
             "cv_url",
+            "skills",
         ]
 
     def get_profile_picture_url(self, obj):

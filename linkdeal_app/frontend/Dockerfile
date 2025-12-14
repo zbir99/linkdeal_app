@@ -5,16 +5,26 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copie des fichiers de dépendances
+# Build arguments for environment variables
+ARG VITE_API_URL
+ARG VITE_AUTH0_DOMAIN
+ARG VITE_AUTH0_CLIENT_ID
+
+# Set environment variables for the build
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_AUTH0_DOMAIN=${VITE_AUTH0_DOMAIN}
+ENV VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
+
+# Copy package files
 COPY package.json package-lock.json ./
 
-# Installation des dépendances
+# Install dependencies
 RUN npm ci
 
-# Copie du code source
+# Copy source code
 COPY . .
 
-# Build de l'application
+# Build the application
 RUN npm run build
 
 # ======================
@@ -22,17 +32,18 @@ RUN npm run build
 # ======================
 FROM nginx:alpine AS production
 
-# Copie de la config Nginx personnalisée
+# Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copie des fichiers buildés depuis le stage précédent
+# Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose le port 80
+# Expose port 80
 EXPOSE 80
 
-# Pas de healthcheck - le reverse proxy externe gère la disponibilité
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
-# Lancement de Nginx
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
-

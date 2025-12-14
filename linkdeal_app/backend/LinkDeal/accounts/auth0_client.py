@@ -568,3 +568,52 @@ class Auth0Client:
             return {"users": data, "total": len(data)}
         
         return data
+
+    @classmethod
+    def update_user_password(cls, auth0_user_id: str, new_password: str) -> None:
+        """
+        Update a user's password in Auth0 using the Management API.
+        
+        :param auth0_user_id: The Auth0 user ID (e.g., "auth0|abc123")
+        :param new_password: The new password to set
+        :raises ExternalServiceError: If the password update fails
+        """
+        url = f"https://{settings.AUTH0_DOMAIN}/api/v2/users/{auth0_user_id}"
+        
+        payload = {"password": new_password}
+        
+        try:
+            resp = requests.patch(url, json=payload, headers=cls._headers(), timeout=10)
+        except requests.RequestException as exc:
+            logger.exception("Error calling Auth0 update_user_password")
+            raise ExternalServiceError("Could not contact Auth0 to update password") from exc
+        
+        if resp.status_code not in (200, 201):
+            logger.error("Auth0 update_user_password error: %s %s", resp.status_code, resp.text)
+            raise ExternalServiceError(f"Auth0 password update failed: HTTP {resp.status_code}")
+        
+        logger.info(f"Successfully updated password for Auth0 user: {auth0_user_id}")
+
+    @classmethod
+    def mark_email_verified(cls, auth0_user_id: str) -> None:
+        """
+        Mark a user's email as verified in Auth0 using the Management API.
+        
+        :param auth0_user_id: The Auth0 user ID (e.g., "auth0|abc123")
+        :raises ExternalServiceError: If the update fails
+        """
+        url = f"https://{settings.AUTH0_DOMAIN}/api/v2/users/{auth0_user_id}"
+        
+        payload = {"email_verified": True}
+        
+        try:
+            resp = requests.patch(url, json=payload, headers=cls._headers(), timeout=10)
+        except requests.RequestException as exc:
+            logger.exception("Error calling Auth0 mark_email_verified")
+            raise ExternalServiceError("Could not contact Auth0 to verify email") from exc
+        
+        if resp.status_code not in (200, 201):
+            logger.error("Auth0 mark_email_verified error: %s %s", resp.status_code, resp.text)
+            raise ExternalServiceError(f"Auth0 email verification failed: HTTP {resp.status_code}")
+        
+        logger.info(f"Successfully marked email as verified for Auth0 user: {auth0_user_id}")

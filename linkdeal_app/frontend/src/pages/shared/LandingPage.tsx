@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import linkDealLogo from "@/assets/landing_page/images/logo (2).png";
 import linkDealLogoLight from "@/assets/landing_page/images/logo_light_mode.png";
 import aiCoaching from "@/assets/landing_page/ai-coaching.svg";
@@ -21,7 +21,59 @@ import vector18 from "@/assets/landing_page/vector-18.svg";
 import vector21 from "@/assets/landing_page/vector-21.svg";
 
 export const LandingPage = (): JSX.Element => {
+    const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(true);
+
+    // Check if user is already authenticated - redirect to dashboard
+    // Checks both localStorage (rememberMe) and sessionStorage (session-only)
+    useEffect(() => {
+        let token = localStorage.getItem('token');
+        let user = localStorage.getItem('user');
+        let tokenExpiry = localStorage.getItem('token_expiry');
+        let storageType: 'local' | 'session' = 'local';
+
+        // If not in localStorage, check sessionStorage
+        if (!token) {
+            token = sessionStorage.getItem('token');
+            user = sessionStorage.getItem('user');
+            tokenExpiry = sessionStorage.getItem('token_expiry');
+            storageType = 'session';
+        }
+
+        if (token && user) {
+            // Check if token is still valid (not expired)
+            if (tokenExpiry) {
+                const expiryDate = new Date(tokenExpiry);
+                if (new Date() > expiryDate) {
+                    // Token expired - clear and stay on landing page
+                    console.log('Token expired - clearing auth data');
+                    if (storageType === 'local') {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('token_expiry');
+                        localStorage.removeItem('remember_me');
+                        localStorage.removeItem('id_token');
+                    } else {
+                        sessionStorage.removeItem('token');
+                        sessionStorage.removeItem('user');
+                        sessionStorage.removeItem('token_expiry');
+                        sessionStorage.removeItem('id_token');
+                    }
+                    return;
+                }
+            }
+
+            // Token still valid - redirect to dashboard
+            try {
+                const userData = JSON.parse(user);
+                const dashboardPath = `/${userData.role || 'mentee'}/dashboard`;
+                console.log('User already authenticated - redirecting to:', dashboardPath);
+                navigate(dashboardPath, { replace: true });
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
+        }
+    }, [navigate]);
 
     const featureCards = [
         {

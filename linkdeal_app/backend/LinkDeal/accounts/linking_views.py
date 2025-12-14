@@ -571,12 +571,15 @@ def send_account_linking_email(verification: AccountLinkingVerification):
     from django.conf import settings
     from django.core.mail import send_mail
     
+    # LinkDeal Logo URL
+    LINKDEAL_LOGO_URL = "https://i.postimg.cc/MH6sFPV2/growth-2.png"
+    
     # Build verification URL
     frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
     verification_url = f"{frontend_url}/auth/verify-linking/{verification.token}"
     
     recipient_email = verification.existing_user.email
-    subject = "Link Your Social Account to LinkDeal"
+    subject = "🔗 Link Your Social Account to LinkDeal"
     
     # Plain text message
     message = f"""Hello,
@@ -595,24 +598,96 @@ Best regards,
 LinkDeal Team
 """
     
-    # HTML message (optional, but recommended for better user experience)
-    html_message = f"""<html>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #4CAF50;">Link Your Social Account</h2>
-        <p>Hello,</p>
-        <p>Someone is trying to link a social account (Google/LinkedIn) to your existing LinkDeal account.</p>
-        <p>If this was you, please click the button below to verify and complete the account linking:</p>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{verification_url}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Verify Account Linking</a>
-        </div>
-        <p>Or copy and paste this URL into your browser:</p>
-        <p style="word-break: break-all; color: #666; font-size: 12px;">{verification_url}</p>
-        <p><strong style="color: #d32f2f;">This link will expire in 15 minutes.</strong></p>
-        <p>If you did not request this, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-        <p style="color: #999; font-size: 12px;">Best regards,<br>LinkDeal Team</p>
-    </div>
+    # Modern HTML email message
+    html_message = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Your Account - LinkDeal</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #2a1a3e 100%); min-height: 100vh;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="min-height: 100vh;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; background: linear-gradient(180deg, rgba(26, 26, 46, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%); border-radius: 20px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(112, 8, 231, 0.15); border: 1px solid rgba(142, 81, 255, 0.2);">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td align="center" style="padding: 40px 40px 30px 40px; border-bottom: 1px solid rgba(142, 81, 255, 0.15);">
+                            <img src="{LINKDEAL_LOGO_URL}" alt="LinkDeal" width="70" height="70" style="display: block; margin-bottom: 15px;">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #c8b0ff 50%, #a684ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: #ffffff;">LinkDeal</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <div style="display: inline-block; width: 80px; height: 80px; background: linear-gradient(135deg, rgba(142, 81, 255, 0.3) 0%, rgba(112, 8, 231, 0.2) 100%); border-radius: 50%; margin-bottom: 20px; line-height: 80px;">
+                                    <span style="font-size: 40px;">🔗</span>
+                                </div>
+                                <h2 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 600; color: #ffffff;">Link Your Social Account</h2>
+                            </div>
+                            
+                            <p style="margin: 0 0 20px 0; font-size: 16px; color: rgba(255, 255, 255, 0.9); line-height: 1.6;">
+                                Hello,
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; font-size: 16px; color: rgba(255, 255, 255, 0.8); line-height: 1.6;">
+                                Someone is trying to link a <strong style="color: #c8b0ff;">social account</strong> (Google/LinkedIn) to your existing LinkDeal account.
+                            </p>
+                            
+                            <div style="background: linear-gradient(135deg, rgba(142, 81, 255, 0.15) 0%, rgba(142, 81, 255, 0.05) 100%); border: 1px solid rgba(142, 81, 255, 0.3); border-radius: 12px; padding: 16px 20px; margin: 20px 0;">
+                                <p style="margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.8);">
+                                    If this was you, click the button below to verify and complete the account linking.
+                                </p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{verification_url}" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.4);">
+                                    ✅ Verify Account Linking
+                                </a>
+                            </div>
+                            
+                            <p style="margin: 20px 0 10px 0; font-size: 13px; color: rgba(255, 255, 255, 0.5); line-height: 1.6;">
+                                Or copy and paste this URL into your browser:
+                            </p>
+                            <p style="word-break: break-all; font-size: 12px; color: rgba(142, 81, 255, 0.7); background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 8px; margin: 0 0 20px 0;">
+                                {verification_url}
+                            </p>
+                            
+                            <div style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 152, 0, 0.05) 100%); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 12px; padding: 16px 20px; margin: 20px 0;">
+                                <p style="margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.9);">
+                                    ⏰ <strong style="color: #FFB74D;">This link will expire in 15 minutes.</strong>
+                                </p>
+                            </div>
+                            
+                            <p style="margin: 20px 0 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.5); line-height: 1.6;">
+                                If you did not request this, please ignore this email.
+                            </p>
+                            
+                            <p style="margin: 30px 0 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.5); line-height: 1.6;">
+                                Best regards,<br>
+                                <strong style="color: #c8b0ff;">The LinkDeal Team</strong>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; border-top: 1px solid rgba(142, 81, 255, 0.15); text-align: center;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: rgba(255, 255, 255, 0.5);">
+                                &copy; 2024 LinkDeal. All rights reserved.
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255, 255, 255, 0.35);">
+                                Connecting Mentors and Mentees Worldwide
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
 """

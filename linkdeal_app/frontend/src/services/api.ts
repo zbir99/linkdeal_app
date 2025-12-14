@@ -12,16 +12,18 @@ const api = axios.create({
 })
 
 // Request interceptor - Add auth token to requests
+// Checks both localStorage (remember me) and sessionStorage (session only)
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN)
+        // First check localStorage, then sessionStorage
+        const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN) || sessionStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
         if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
+            config.headers.Authorization = `Bearer ${token}`;
         }
-        return config
+        return config;
     },
     (error: AxiosError) => {
-        return Promise.reject(error)
+        return Promise.reject(error);
     }
 )
 
@@ -38,7 +40,7 @@ api.interceptors.response.use(
         console.log('Error response error details:', (error.response?.data as any)?.error)
         console.log('Error response validation details:', (error.response?.data as any)?.error?.details)
         console.log('Error response email errors:', (error.response?.data as any)?.error?.details?.email)
-        
+
         const apiError: ApiError = {
             message: (error.response?.data as any)?.error?.details?.email?.[0] || error.response?.data?.message || error.message || 'An error occurred',
             code: error.code,
@@ -49,9 +51,16 @@ api.interceptors.response.use(
 
         // Handle specific error cases
         if (error.response?.status === 401) {
-            // Unauthorized - clear token and redirect to login
-            localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN)
-            localStorage.removeItem(LOCAL_STORAGE_KEYS.USER)
+            // Unauthorized - clear tokens from both storages and redirect to login
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+            localStorage.removeItem('token_expiry');
+            localStorage.removeItem('remember_me');
+            localStorage.removeItem('id_token');
+            sessionStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+            sessionStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+            sessionStorage.removeItem('token_expiry');
+            sessionStorage.removeItem('id_token');
             // You can add navigation logic here
         }
 
