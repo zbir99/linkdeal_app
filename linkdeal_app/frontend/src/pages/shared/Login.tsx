@@ -58,7 +58,11 @@ export const Login = (): JSX.Element => {
                     // Token still valid - redirect to dashboard
                     try {
                         const userData = JSON.parse(user);
-                        const dashboardPath = `/${userData.role || 'mentee'}/dashboard`;
+                        const userRole = userData.role || 'mentee';
+                        // Admin and super_admin both go to /admin dashboard
+                        const dashboardPath = (userRole === 'admin' || userRole === 'super_admin')
+                            ? '/admin'
+                            : `/${userRole}/dashboard`;
                         console.log('User already authenticated - redirecting to:', dashboardPath);
                         navigate(dashboardPath, { replace: true });
                         return;
@@ -70,7 +74,11 @@ export const Login = (): JSX.Element => {
                 // No expiry set but token exists - still valid, redirect
                 try {
                     const userData = JSON.parse(user);
-                    const dashboardPath = `/${userData.role || 'mentee'}/dashboard`;
+                    const userRole = userData.role || 'mentee';
+                    // Admin and super_admin both go to /admin dashboard
+                    const dashboardPath = (userRole === 'admin' || userRole === 'super_admin')
+                        ? '/admin'
+                        : `/${userRole}/dashboard`;
                     console.log('User already authenticated - redirecting to:', dashboardPath);
                     navigate(dashboardPath, { replace: true });
                     return;
@@ -132,7 +140,10 @@ export const Login = (): JSX.Element => {
             if (response.success) {
                 // Navigate to role-specific dashboard
                 const userRole = response.data?.role || 'mentee';
-                const dashboardPath = `/${userRole}/dashboard`;
+                // Admin and super_admin both go to /admin dashboard
+                const dashboardPath = (userRole === 'admin' || userRole === 'super_admin')
+                    ? '/admin'
+                    : `/${userRole}/dashboard`;
                 navigate(dashboardPath);
             } else {
                 setError(response.message || 'Login failed');

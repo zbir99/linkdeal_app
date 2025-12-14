@@ -5,31 +5,32 @@ import Validation from './pages/Validation';
 import SupportTickets from './pages/Support_tickets';
 import UserManagement from './pages/User_Management';
 import Settings from './pages/Settings';
+import RoleProtectedRoute from '@/components/RoleProtectedRoute';
 
-// Admin App Routes
+// Admin App Routes - Protected for admin and super_admin roles only
 export const adminRoutes: RouteObject[] = [
     {
         path: '/admin',
-        element: <AdminDashboard />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><AdminDashboard /></RoleProtectedRoute>
     },
     {
         path: '/admin/mentors',
-        element: <MentorListPage />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><MentorListPage /></RoleProtectedRoute>
     },
     {
         path: '/admin/validation',
-        element: <Validation />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Validation /></RoleProtectedRoute>
     },
     {
         path: '/admin/support-tickets',
-        element: <SupportTickets />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><SupportTickets /></RoleProtectedRoute>
     },
     {
         path: '/admin/user-management',
-        element: <UserManagement />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><UserManagement /></RoleProtectedRoute>
     },
     {
         path: '/admin/settings',
-        element: <Settings />
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Settings /></RoleProtectedRoute>
     }
 ];

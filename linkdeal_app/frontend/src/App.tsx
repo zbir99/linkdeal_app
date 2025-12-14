@@ -11,6 +11,7 @@ import UserManagement from '@/apps/admin/pages/User_Management'
 import Settings from '@/apps/admin/pages/Settings'
 import { menteeRoutes, adminRoutes, mentorRoutes } from '@/apps'
 import { MenteeSignupProvider } from '@/apps/mentee/context/MenteeSignupContext'
+import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 
 function App() {
     const { setTheme } = useAppStore()
@@ -49,10 +50,10 @@ function App() {
                     <Route path="/verify-email" element={<EmailVerificationPending />} />
                     <Route path="/auth/verify-linking/:token" element={<VerifyLinking />} />
                     <Route path="/auth/link-account" element={<LinkingRequest />} />
-                    <Route path="/admin/validation" element={<Validation />} />
-                    <Route path="/admin/support-tickets" element={<SupportTickets />} />
-                    <Route path="/admin/user-management" element={<UserManagement />} />
-                    <Route path="/admin/settings" element={<Settings />} />
+                    <Route path="/admin/validation" element={<RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Validation /></RoleProtectedRoute>} />
+                    <Route path="/admin/support-tickets" element={<RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><SupportTickets /></RoleProtectedRoute>} />
+                    <Route path="/admin/user-management" element={<RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><UserManagement /></RoleProtectedRoute>} />
+                    <Route path="/admin/settings" element={<RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Settings /></RoleProtectedRoute>} />
                     {menteeRoutes.map((route, index) => (
                         <Route key={`mentee-${index}`} path={route.path} element={route.element} />
                     ))}
@@ -60,7 +61,15 @@ function App() {
                         <Route key={`mentor-${index}`} path={route.path} element={route.element} />
                     ))}
                     {adminRoutes.map((route, index) => (
-                        <Route key={`admin-${index}`} path={route.path} element={route.element} />
+                        <Route
+                            key={`admin-${index}`}
+                            path={route.path}
+                            element={
+                                <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                                    {route.element}
+                                </RoleProtectedRoute>
+                            }
+                        />
                     ))}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
