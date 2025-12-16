@@ -1,11 +1,52 @@
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/auth';
+import api from '@/services/api';
+
+interface MenteeProfile {
+  full_name?: string;
+  profile_picture?: string;
+  social_picture_url?: string;
+}
 
 const WelcomeHeader: FunctionComponent = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [profileData, setProfileData] = useState<MenteeProfile | null>(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Fetch mentee profile data
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('auth/mentee/profile/me/');
+        setProfileData(response.data);
+
+        // Priority: 1. Uploaded profile picture, 2. Social picture URL from DB, 3. SessionStorage fallback
+        if (response.data.profile_picture) {
+          // Check if it's a relative path or full URL
+          const picUrl = response.data.profile_picture.startsWith('http')
+            ? response.data.profile_picture
+            : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${response.data.profile_picture}`;
+          setProfilePictureUrl(picUrl);
+        } else if (response.data.social_picture_url) {
+          // Use social picture URL from database (Google/LinkedIn)
+          setProfilePictureUrl(response.data.social_picture_url);
+        } else {
+          // Fallback: check for social auth picture in sessionStorage
+          const socialPicture = sessionStorage.getItem('social_auth_picture') || localStorage.getItem('social_auth_picture');
+          if (socialPicture) {
+            setProfilePictureUrl(socialPicture);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleProfileClick = () => {
     navigate('/mentee/profile');
@@ -41,11 +82,13 @@ const WelcomeHeader: FunctionComponent = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const displayName = profileData?.full_name || 'User';
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-white leading-tight">
-          Welcome, hamza 👋
+          Welcome, {displayName} 👋
         </h1>
         <p className="text-base text-gray-400 font-arimo leading-6">
           Ready to make progress today?
@@ -74,7 +117,27 @@ const WelcomeHeader: FunctionComponent = () => {
             onClick={toggleMenu}
             className="relative hover:scale-105 transition-transform duration-200 cursor-pointer"
           >
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {profilePictureUrl ? (
+              <img
+                src={profilePictureUrl}
+                alt={`${displayName}'s profile`}
+                className="w-11 h-11 min-w-[44px] min-h-[44px] max-w-[44px] max-h-[44px] rounded-full object-cover border-2 border-purple-500 flex-shrink-0"
+                onError={(e) => {
+                  // Fallback to default avatar on error
+                  e.currentTarget.style.display = 'none';
+                  const svgElement = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (svgElement) svgElement.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <svg
+              width="44"
+              height="44"
+              viewBox="0 0 44 44"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={profilePictureUrl ? 'hidden' : ''}
+            >
               <path d="M0 22C0 9.84974 9.84974 0 22 0C34.1503 0 44 9.84974 44 22C44 34.1503 34.1503 44 22 44C9.84974 44 0 34.1503 0 22Z" fill="#7008E7" />
               <path d="M15.8516 28.1318C14.9193 28.1318 14.1771 27.8923 13.625 27.4131C13.0729 26.9287 12.7083 26.2048 12.5312 25.2412L13.9922 24.999C14.0859 25.6032 14.2969 26.0745 14.625 26.4131C14.9531 26.7516 15.3646 26.9209 15.8594 26.9209C16.401 26.9209 16.8281 26.736 17.1406 26.3662C17.4531 25.9912 17.6094 25.4443 17.6094 24.7256V18.1865H15.4922V16.9678H19.0938V24.6943C19.0938 25.762 18.8047 26.6032 18.2266 27.2178C17.6484 27.8271 16.8568 28.1318 15.8516 28.1318ZM31.0703 22.3584C31.0703 23.5199 30.8438 24.5199 30.3906 25.3584C29.9427 26.1969 29.3151 26.8428 28.5078 27.2959C27.7057 27.749 26.7734 27.9756 25.7109 27.9756H21.5938V16.9678H25.2344C27.099 16.9678 28.5365 17.4365 29.5469 18.374C30.5625 19.3063 31.0703 20.6344 31.0703 22.3584ZM29.5703 22.3584C29.5703 20.9938 29.1953 19.9548 28.4453 19.2412C27.7005 18.5225 26.6198 18.1631 25.2031 18.1631H23.0859V26.7803H25.5391C26.3568 26.7803 27.0651 26.6006 27.6641 26.2412C28.2682 25.8818 28.737 25.3714 29.0703 24.71C29.4036 24.0485 29.5703 23.2646 29.5703 22.3584Z" fill="white" />
             </svg>

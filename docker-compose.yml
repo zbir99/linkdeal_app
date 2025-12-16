@@ -27,7 +27,7 @@ services:
     networks:
       - linkdeal-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-linkdeal_user} -d ${POSTGRES_DB:-linkdeal}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-linkdeal_user} -d ${POSTGRES_DB:-linkdeal}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,27 +52,35 @@ services:
       - DEBUG=${DEBUG:-False}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,linkdeal-backend}
-      
+
       # Database
       - DB_NAME=${POSTGRES_DB:-linkdeal}
       - DB_USER=${POSTGRES_USER:-linkdeal_user}
       - DB_PASSWORD=${POSTGRES_PASSWORD:-linkdeal_password}
       - DB_HOST=linkdeal-db
       - DB_PORT=5432
-      
+
       # Auth0 Configuration
       - AUTH0_DOMAIN=${AUTH0_DOMAIN}
-      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
-      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
-      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
-      
+      - AUTH0_CLIENT_ID=${AUTH0_SPA_CLIENT_ID}
+      - AUTH0_CLIENT_SECRET=${AUTH0_MGMT_CLIENT_SECRET}
+      - AUTH0_AUDIENCE=${AUTH0_API_AUDIENCE}
+      - AUTH0_CUSTOM_NAMESPACE=${AUTH0_CUSTOM_NAMESPACE}
+      - AUTH0_MGMT_CLIENT_ID=${AUTH0_MGMT_CLIENT_ID}
+      - AUTH0_MGMT_CLIENT_SECRET=${AUTH0_MGMT_CLIENT_SECRET}
+      - AUTH0_DB_CONNECTION=${AUTH0_DB_CONNECTION}
+      - AUTH0_MENTOR_ROLE_ID=${AUTH0_MENTOR_ROLE_ID}
+      - AUTH0_MENTEE_ROLE_ID=${AUTH0_MENTEE_ROLE_ID}
+      - AUTH0_ADMIN_ROLE_ID=${AUTH0_ADMIN_ROLE_ID}
+      - AUTH0_SUPER_ADMIN_ROLE_ID=${AUTH0_SUPER_ADMIN_ROLE_ID}
+
       # Email Configuration
       - EMAIL_HOST=${EMAIL_HOST:-smtp.sendgrid.net}
       - EMAIL_PORT=${EMAIL_PORT:-587}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@linkdeal.com}
-      
+
       # Frontend URL (for CORS and email links)
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3102}
     volumes:
@@ -94,9 +102,11 @@ services:
       context: ./linkdeal_app/frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
+        - VITE_API_URL=http://localhost:8000
         - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
-        - VITE_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+        - VITE_AUTH0_CLIENT_ID=${AUTH0_SPA_CLIENT_ID}
+        - VITE_AUTH0_CLIENT_SECRET=${AUTH0_SPA_CLIENT_SECRET}
+        - VITE_AUTH0_AUDIENCE=${AUTH0_API_AUDIENCE}
     container_name: linkdeal-frontend
     restart: unless-stopped
     depends_on:
@@ -181,7 +191,7 @@ services:
     networks:
       - linkdeal-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

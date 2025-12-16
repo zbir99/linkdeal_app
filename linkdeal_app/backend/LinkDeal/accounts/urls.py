@@ -7,6 +7,7 @@ from accounts.views import (
     SocialMenteeRegisterView,
     SocialMentorRegisterView,
     MeView,
+    MenteeProfileMeView,
     LogoutView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
@@ -58,6 +59,9 @@ urlpatterns = [
     
     path("me/", MeView.as_view(), name="me"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    
+    # Mentee profile endpoint
+    path("mentee/profile/me/", MenteeProfileMeView.as_view(), name="mentee-profile-me"),
 
     # Admin mentor review
     path("admin/mentors/pending/", PendingMentorsView.as_view(), name="pending-mentors"),

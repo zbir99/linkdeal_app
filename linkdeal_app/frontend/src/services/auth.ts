@@ -1122,17 +1122,25 @@ class AuthService {
         const errorData = error.response.data
         let errorMessage = 'Registration failed'
 
-        // Check for ExternalServiceError message (from Auth0 errors)
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message
-        }
-        // Check for field-level validation errors
-        else if (errorData.error?.details) {
+        // Check for field-level validation errors FIRST (before generic message)
+        if (errorData.error?.details && typeof errorData.error.details === 'object') {
           const details = errorData.error.details
-          const messages = Object.entries(details)
-            .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
-            .join('; ')
-          errorMessage = messages || errorMessage
+          // Extract just the error messages without redundant field labels
+          const messages: string[] = []
+          for (const [, errors] of Object.entries(details)) {
+            if (Array.isArray(errors)) {
+              messages.push(...errors)
+            } else if (typeof errors === 'string') {
+              messages.push(errors)
+            }
+          }
+          if (messages.length > 0) {
+            errorMessage = messages.join('\n')
+          }
+        }
+        // Check for ExternalServiceError message (from Auth0 errors) - skip generic "Validation error"
+        else if (errorData.error?.message && errorData.error.message !== 'Validation error') {
+          errorMessage = errorData.error.message
         }
 
         return {

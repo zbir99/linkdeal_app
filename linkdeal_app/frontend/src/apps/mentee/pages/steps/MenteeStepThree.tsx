@@ -67,6 +67,12 @@ export const MenteeStepThree = (): JSX.Element => {
             if (!isSocialAuth) {
                 registerData.password = signupData.password;
                 registerData.password_confirm = signupData.password;
+            } else {
+                // Add social picture URL for social auth users
+                const socialPicture = sessionStorage.getItem('social_auth_picture');
+                if (socialPicture) {
+                    registerData.social_picture_url = socialPicture;
+                }
             }
 
             // Store for potential linking flow
