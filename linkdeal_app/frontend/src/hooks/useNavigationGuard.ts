@@ -39,6 +39,7 @@ export function useNavigationGuard({
     const location = useLocation();
     const [showModal, setShowModal] = useState(false);
     const [pendingPath, setPendingPath] = useState<string | null>(null);
+    const [bypassGuard, setBypassGuard] = useState(false);
 
     // Handle browser close/refresh (beforeunload event)
     useEffect(() => {
@@ -87,6 +88,12 @@ export function useNavigationGuard({
         };
 
         const interceptNavigation = (url: string | URL | null | undefined) => {
+            // Skip interception if bypass flag is set (user clicked "Leave Anyway")
+            if (bypassGuard) {
+                console.log('[NavigationGuard] Bypass flag set, allowing navigation');
+                return false;
+            }
+
             if (url && typeof url === 'string') {
                 // Extract pathname from the URL
                 const pathname = url.startsWith('/') ? url : new URL(url, window.location.origin).pathname;
@@ -139,26 +146,40 @@ export function useNavigationGuard({
             window.history.replaceState = originalReplaceState;
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [when, location.pathname, allowedPaths]);
+    }, [when, location.pathname, allowedPaths, bypassGuard]);
 
     const handleStayOnPage = useCallback(() => {
         setShowModal(false);
         setPendingPath(null);
+        setBypassGuard(false); // Reset bypass flag
     }, []);
 
     const handleLeaveAnyway = useCallback(() => {
         setShowModal(false);
+        // Set bypass flag to allow the navigation to proceed
+        // The actual navigation will happen in the useEffect below
+        setBypassGuard(true);
+    }, []);
 
-        if (pendingPath === 'back') {
-            // Go back in history
-            window.history.go(-2); // -2 because we pushed a state in popstate handler
-        } else if (pendingPath) {
-            // Navigate to the pending path
-            navigate(pendingPath, { replace: true });
+    // Effect to perform navigation AFTER bypassGuard state is updated
+    // This ensures the intercepting hooks see bypassGuard=true before navigate() is called
+    useEffect(() => {
+        if (bypassGuard && pendingPath) {
+            console.log('[NavigationGuard] Bypass active, performing deferred navigation to:', pendingPath);
+
+            if (pendingPath === 'back') {
+                // Go back in history
+                window.history.go(-2); // -2 because we pushed a state in popstate handler
+            } else {
+                // Navigate to the pending path
+                navigate(pendingPath, { replace: true });
+            }
+
+            // Reset state after navigation
+            setPendingPath(null);
+            setBypassGuard(false);
         }
-
-        setPendingPath(null);
-    }, [pendingPath, navigate]);
+    }, [bypassGuard, pendingPath, navigate]);
 
     return {
         showModal,

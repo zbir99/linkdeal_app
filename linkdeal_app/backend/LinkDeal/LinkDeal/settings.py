@@ -211,6 +211,7 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL  # For error emails
 # =======================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # React dev
+    "http://localhost:3102",  # Docker frontend
     # "https://app.linkdeal.io",  # example prod domain
 ]
 CORS_ALLOW_CREDENTIALS = True

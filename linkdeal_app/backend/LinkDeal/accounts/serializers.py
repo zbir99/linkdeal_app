@@ -282,6 +282,7 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
     country = serializers.CharField(max_length=100)
     language = serializers.CharField(max_length=255, required=False, allow_blank=True)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
+    social_picture_url = serializers.URLField(max_length=500, required=False, allow_blank=True, allow_null=True)
     link_consent = serializers.BooleanField(required=False, default=False)
     
     # NEW FIELDS
@@ -394,6 +395,14 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
         # Create or update MenteeProfile
         # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
         # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        
+        # Get social picture URL from request data (sent by frontend from sessionStorage)
+        social_picture = validated_data.get('social_picture_url')
+        
+        # DEBUG: Log social picture URL
+        logger.info(f"=== DEBUG: Social Registration for {email} ===")
+        logger.info(f"social_picture_url from validated_data: {social_picture}")
+        
         try:
             profile, profile_created = MenteeProfile.objects.get_or_create(
                 user=app_user,
@@ -404,6 +413,7 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                     "country": validated_data["country"],
                     "language": validated_data.get("language", ""),
                     "profile_picture": validated_data.get("profile_picture"),
+                    "social_picture_url": social_picture,  # Store Google/LinkedIn picture URL
                     # NEW FIELDS
                     "interests": validated_data.get("interests", []),
                     "user_type": validated_data.get("user_type"),

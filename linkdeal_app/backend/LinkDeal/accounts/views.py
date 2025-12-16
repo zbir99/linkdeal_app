@@ -16,7 +16,7 @@ from accounts.serializers import (
     SocialMentorRegisterSerializer,
     SocialMenteeRegisterSerializer,
 )
-from accounts.models import AppUser, EmailVerificationToken, PasswordResetToken, MentorProfile
+from accounts.models import AppUser, EmailVerificationToken, PasswordResetToken, MentorProfile, MenteeProfile
 from accounts.auth0_client import Auth0Client
 from accounts.email_service import send_verification_email, send_password_reset_email
 from core.exceptions import ExternalServiceError
@@ -84,6 +84,52 @@ class MeView(APIView):
                 response_data['skills'] = []
 
         return Response(response_data)
+
+
+class MenteeProfileMeView(APIView):
+    """
+    GET /auth/mentee/profile/me/
+    Returns the authenticated mentee's profile data including profile picture.
+    """
+    permission_classes = [IsAuthenticatedAuth0]
+
+    def get(self, request):
+        user = request.user
+        
+        try:
+            # Get AppUser from auth0_id
+            app_user = AppUser.objects.get(auth0_id=user.auth0_id)
+            
+            # Get mentee profile
+            mentee_profile = MenteeProfile.objects.get(user=app_user)
+            
+            # Build profile picture URL
+            profile_picture_url = None
+            if mentee_profile.profile_picture:
+                profile_picture_url = request.build_absolute_uri(mentee_profile.profile_picture.url)
+            
+            return Response({
+                "full_name": mentee_profile.full_name,
+                "email": mentee_profile.email,
+                "profile_picture": profile_picture_url,
+                "social_picture_url": mentee_profile.social_picture_url,
+                "country": mentee_profile.country,
+                "field_of_study": mentee_profile.field_of_study,
+                "language": mentee_profile.language,
+                "interests": mentee_profile.interests,
+                "user_type": mentee_profile.user_type,
+                "session_frequency": mentee_profile.session_frequency,
+            })
+        except AppUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except MenteeProfile.DoesNotExist:
+            return Response(
+                {"error": "Mentee profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 # ---------------------------------------------------------------

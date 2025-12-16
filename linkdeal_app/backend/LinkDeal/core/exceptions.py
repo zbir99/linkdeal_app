@@ -40,8 +40,24 @@ def custom_exception_handler(exc, context):
                 message = str(response.data["detail"])
                 details = None
             else:
-                message = "Validation error" if status_code == 400 else "Request error"
+                # Extract a more meaningful message from validation errors
                 details = response.data
+                message = None
+                
+                # Try to get a specific error message from the first field with errors
+                if status_code == 400 and isinstance(details, dict):
+                    for field, errors in details.items():
+                        if isinstance(errors, list) and len(errors) > 0:
+                            # Use the first error message as the main message
+                            message = f"{field.replace('_', ' ').title()}: {errors[0]}"
+                            break
+                        elif isinstance(errors, str):
+                            message = f"{field.replace('_', ' ').title()}: {errors}"
+                            break
+                
+                # Fallback to generic message if no specific error found
+                if not message:
+                    message = "Validation error" if status_code == 400 else "Request error"
         else:
             message = str(response.data)
             details = None

@@ -258,6 +258,14 @@ class MenteeProfile(models.Model):
             FileExtensionValidator(["jpg", "jpeg", "png"])
         ]
     )
+    
+    # For social auth (Google/LinkedIn) profile pictures
+    social_picture_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="Profile picture URL from social auth (Google/LinkedIn)"
+    )
 
     # NEW FIELDS FROM UI
     interests = models.JSONField(
