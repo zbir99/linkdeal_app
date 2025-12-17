@@ -1,0 +1,1064 @@
+{
+    "info": {
+        "name": "LinkDeal API - Scheduling & Mentoring",
+        "description": "Collection complète pour tester les endpoints scheduling et mentoring",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "token",
+            "value": "YOUR_AUTH0_TOKEN_HERE"
+        },
+        {
+            "key": "mentorId",
+            "value": "MENTOR_UUID_HERE"
+        },
+        {
+            "key": "sessionId",
+            "value": "SESSION_UUID_HERE"
+        },
+        {
+            "key": "availabilityId",
+            "value": "AVAILABILITY_UUID_HERE"
+        },
+        {
+            "key": "reviewId",
+            "value": "REVIEW_UUID_HERE"
+        },
+        {
+            "key": "menteeId",
+            "value": "MENTEE_UUID_HERE"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "SCHEDULING",
+            "item": [
+                {
+                    "name": "1. Session Types",
+                    "item": [
+                        {
+                            "name": "Liste types de session",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/session-types/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "session-types",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2. Disponibilités Mentor",
+                    "item": [
+                        {
+                            "name": "Lister mes créneaux",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentor/availability/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentor",
+                                        "availability",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Créer un créneau",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"day_of_week\": 1,\n    \"start_time\": \"09:00\",\n    \"end_time\": \"12:00\",\n    \"is_recurring\": true\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentor/availability/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentor",
+                                        "availability",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Modifier un créneau",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"start_time\": \"10:00\",\n    \"is_available\": false\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentor/availability/{{availabilityId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentor",
+                                        "availability",
+                                        "{{availabilityId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Supprimer un créneau",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentor/availability/{{availabilityId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentor",
+                                        "availability",
+                                        "{{availabilityId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Créer créneaux en lot",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"slots\": [\n        {\"day_of_week\": 0, \"start_time\": \"09:00\", \"end_time\": \"12:00\", \"is_recurring\": true},\n        {\"day_of_week\": 0, \"start_time\": \"14:00\", \"end_time\": \"17:00\", \"is_recurring\": true}\n    ]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentor/availability/bulk/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentor",
+                                        "availability",
+                                        "bulk",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Disponibilités publiques mentor",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/mentors/{{mentorId}}/availability/?date=2024-01-15",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "mentors",
+                                        "{{mentorId}}",
+                                        "availability",
+                                        ""
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "date",
+                                            "value": "2024-01-15"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3. Sessions",
+                    "item": [
+                        {
+                            "name": "Lister mes sessions",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Sessions à venir",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/?status=upcoming",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        ""
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "upcoming"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Sessions par période",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/?from=2024-01-01&to=2024-12-31",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        ""
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": "2024-01-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2024-12-31"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Créer session (réserver)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"mentor_id\": \"{{mentorId}}\",\n    \"scheduled_at\": \"2024-01-20T10:00:00Z\",\n    \"duration_minutes\": 60,\n    \"timezone\": \"Europe/Paris\",\n    \"mentee_notes\": \"Je voudrais discuter de...\",\n    \"objectives\": [\"Objectif 1\", \"Objectif 2\"]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/create/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "create",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Détail session",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Modifier notes session",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"mentee_notes\": \"Nouvelles notes\",\n    \"objectives\": [\"Obj1\", \"Obj2\"]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/notes/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "notes",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Annuler session",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Raison de l'annulation\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/cancel/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "cancel",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Confirmer session (mentor)",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/confirm/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "confirm",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Terminer session (mentor)",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/complete/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "complete",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4. Statistiques",
+                    "item": [
+                        {
+                            "name": "Stats sessions",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/stats/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "stats",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Données graphique",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/chart/?months=6",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "chart",
+                                        ""
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "months",
+                                            "value": "6"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5. Video Call",
+                    "item": [
+                        {
+                            "name": "Obtenir room ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/video-room/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "video-room",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Démarrer appel",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/start-call/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "start-call",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Terminer appel",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/end-call/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "end-call",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6. Attachments",
+                    "item": [
+                        {
+                            "name": "Lister fichiers session",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/attachments/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "attachments",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Upload fichier",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": ""
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/scheduling/sessions/{{sessionId}}/attachments/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "scheduling",
+                                        "sessions",
+                                        "{{sessionId}}",
+                                        "attachments",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "MENTORING",
+            "item": [
+                {
+                    "name": "7. Catégories",
+                    "item": [
+                        {
+                            "name": "Liste catégories",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/categories/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "categories",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "8. Listing Mentors",
+                    "item": [
+                        {
+                            "name": "Liste mentors",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentors/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentors",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Recherche mentors",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentors/?search=python&category=web-development&min_rating=4",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentors",
+                                        ""
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "python"
+                                        },
+                                        {
+                                            "key": "category",
+                                            "value": "web-development"
+                                        },
+                                        {
+                                            "key": "min_rating",
+                                            "value": "4"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Détail mentor",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentors/{{mentorId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentors",
+                                        "{{mentorId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9. Reviews (Avis)",
+                    "item": [
+                        {
+                            "name": "Tags disponibles",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/review-tags/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "review-tags",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Avis sur mentor",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentors/{{mentorId}}/reviews/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentors",
+                                        "{{mentorId}}",
+                                        "reviews",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Créer avis (mentee)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"session_id\": \"{{sessionId}}\",\n    \"rating\": 5,\n    \"comment\": \"Excellente session!\",\n    \"tags\": [\"professional\", \"helpful\", \"patient\"]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/reviews/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "reviews",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Répondre avis (mentor)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"response\": \"Merci pour votre retour!\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/reviews/{{reviewId}}/respond/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "reviews",
+                                        "{{reviewId}}",
+                                        "respond",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Mes avis reçus (mentor)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/reviews/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "reviews",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Ma note moyenne (mentor)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/rating/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "rating",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "10. Favoris",
+                    "item": [
+                        {
+                            "name": "Liste favoris (mentee)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/favorites/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "favorites",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Ajouter favori",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"mentor_id\": \"{{mentorId}}\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/favorites/add/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "favorites",
+                                        "add",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Retirer favori",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/favorites/{{mentorId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "favorites",
+                                        "{{mentorId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Est favori?",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentors/{{mentorId}}/is-favorite/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentors",
+                                        "{{mentorId}}",
+                                        "is-favorite",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "11. Relations Mentor-Mentee",
+                    "item": [
+                        {
+                            "name": "Liste mentees (mentor)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/mentees/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "mentees",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Stats mentees",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/mentees/stats/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "mentees",
+                                        "stats",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Détail relation",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/mentees/{{menteeId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "mentees",
+                                        "{{menteeId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Modifier relation",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"paused\",\n    \"mentor_notes\": \"Pause temporaire\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentor/mentees/{{menteeId}}/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentor",
+                                        "mentees",
+                                        "{{menteeId}}",
+                                        ""
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Progression mentee",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/mentoring/mentees/{{menteeId}}/progress/",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "mentoring",
+                                        "mentees",
+                                        "{{menteeId}}",
+                                        "progress",
+                                        ""
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
