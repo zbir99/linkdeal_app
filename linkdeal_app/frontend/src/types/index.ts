@@ -15,8 +15,5 @@ export interface ApiError {
     message: string
     code?: string
     status?: number
-<<<<<<< HEAD
     response?: any
-=======
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
 }

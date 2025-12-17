@@ -115,6 +115,7 @@ class Session(models.Model):
     ]
 
     VIDEO_PROVIDERS = [
+        ('whereby', 'Whereby'),
         ('jitsi', 'Jitsi Meet'),
         ('twilio', 'Twilio Video'),
         ('daily', 'Daily.co'),
@@ -181,7 +182,22 @@ class Session(models.Model):
     video_provider = models.CharField(
         max_length=20,
         choices=VIDEO_PROVIDERS,
-        default='jitsi'
+        default='whereby'
+    )
+    
+    # Whereby specific fields
+    whereby_room_url = models.URLField(
+        blank=True,
+        help_text="Whereby room URL for participants"
+    )
+    whereby_host_room_url = models.URLField(
+        blank=True,
+        help_text="Whereby host room URL with extra controls"
+    )
+    whereby_meeting_id = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Whereby meeting ID for API operations"
     )
     call_started_at = models.DateTimeField(null=True, blank=True)
     call_ended_at = models.DateTimeField(null=True, blank=True)

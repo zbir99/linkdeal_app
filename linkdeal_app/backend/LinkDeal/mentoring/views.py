@@ -166,6 +166,15 @@ class ReviewCreateView(generics.CreateAPIView):
     serializer_class = ReviewCreateSerializer
     permission_classes = [IsAuthenticatedAuth0, IsMentee]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review = serializer.save()
+        
+        # Return full review details with ID
+        detail_serializer = ReviewListSerializer(review, context={'request': request})
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ReviewResponseView(APIView):
     """
@@ -234,6 +243,15 @@ class FavoriteCreateView(generics.CreateAPIView):
     """
     serializer_class = FavoriteCreateSerializer
     permission_classes = [IsAuthenticatedAuth0, IsMentee]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        favorite = serializer.save()
+        
+        # Return full favorite details with ID
+        detail_serializer = FavoriteListSerializer(favorite, context={'request': request})
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class FavoriteDeleteView(APIView):

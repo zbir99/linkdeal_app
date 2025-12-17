@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,13 +43,6 @@ export const Succes = (): JSX.Element => {
         <div className="bg-[#0a0a1a] w-full min-h-screen relative overflow-hidden">
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,26,1)_0%,rgba(26,26,46,1)_50%,rgba(42,26,62,1)_100%)]"></div>
 
-=======
-export const Succes = (): JSX.Element => {
-    return (
-        <div className="bg-[#0a0a1a] w-full min-h-screen relative overflow-hidden">
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,26,1)_0%,rgba(26,26,46,1)_50%,rgba(42,26,62,1)_100%)]"></div>
-            
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
             {/* Background decorative elements */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="absolute top-[20%] left-[10%] w-[383.99px] h-[383.99px] rounded-[32014000px] blur-3xl bg-[linear-gradient(117deg,rgba(233,212,255,0.2)_0%,rgba(190,219,255,0.2)_100%)]" />
@@ -60,19 +52,11 @@ export const Succes = (): JSX.Element => {
 
             {/* Desktop content */}
             <div className="relative z-10 hidden md:flex items-center justify-center w-full min-h-screen">
-<<<<<<< HEAD
                 <div className="w-[600px] h-[450px] bg-[#ffffff0d] backdrop-blur-xl rounded-2xl border-[0.8px] border-solid border-[#fffefe1a] shadow-[0px_4px_6px_-4px_#0000001a,0px_10px_15px_-3px_#0000001a] flex flex-col items-center justify-center gap-8 -mt-4">
                     <div className="flex w-20 h-20 items-center justify-center bg-[#00c95033] rounded-[26843500px]">
                         <div className="relative w-10 h-10">
                             <svg className="absolute w-full h-full" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M26.6663 8L11.9997 22.6667L5.33301 16" stroke="#00C950" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
-=======
-                <div className="w-[600px] h-[400px] bg-[#ffffff0d] backdrop-blur-xl rounded-2xl border-[0.8px] border-solid border-[#fffefe1a] shadow-[0px_4px_6px_-4px_#0000001a,0px_10px_15px_-3px_#0000001a] flex flex-col items-center justify-center gap-8 -mt-4">
-                    <div className="flex w-20 h-20 items-center justify-center bg-[#00c95033] rounded-[26843500px]">
-                        <div className="relative w-10 h-10">
-                            <svg className="absolute w-full h-full" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M26.6663 8L11.9997 22.6667L5.33301 16" stroke="#00C950" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round"/>
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                             </svg>
                         </div>
                     </div>
@@ -85,7 +69,6 @@ export const Succes = (): JSX.Element => {
                             Please wait for confirmation
                         </div>
                     </div>
-<<<<<<< HEAD
 
                     <button
                         onClick={handleLoginClick}
@@ -96,8 +79,6 @@ export const Succes = (): JSX.Element => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                     </button>
-=======
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                 </div>
             </div>
 
@@ -111,7 +92,6 @@ export const Succes = (): JSX.Element => {
                     </div>
                     <h2 className="text-2xl font-semibold">Request sent</h2>
                     <p className="text-white/70 text-sm">Please wait for confirmation</p>
-<<<<<<< HEAD
 
                     <button
                         onClick={handleLoginClick}
@@ -119,8 +99,6 @@ export const Succes = (): JSX.Element => {
                     >
                         Go to Login
                     </button>
-=======
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
                 </div>
             </div>
         </div>

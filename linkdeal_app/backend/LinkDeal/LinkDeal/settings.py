@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -195,6 +195,11 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 # Account linking token expiration (in minutes)
 ACCOUNT_LINKING_TOKEN_EXPIRY_MINUTES = int(os.getenv("ACCOUNT_LINKING_TOKEN_EXPIRY_MINUTES", "15"))
+
+# =======================
+# Whereby Video Configuration
+# =======================
+WHEREBY_API_KEY = os.getenv("WHEREBY_API_KEY", "")
 
 # =======================
 # Email Configuration (SendGrid SMTP)

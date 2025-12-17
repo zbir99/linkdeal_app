@@ -226,6 +226,15 @@ class SessionCreateView(generics.CreateAPIView):
     serializer_class = SessionCreateSerializer
     permission_classes = [IsAuthenticatedAuth0, IsMentee]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        session = serializer.save()
+        
+        # Return full session details with ID
+        detail_serializer = SessionDetailSerializer(session, context={'request': request})
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
+
 
 class SessionDetailView(generics.RetrieveAPIView):
     """
@@ -516,16 +525,18 @@ class SessionChartView(APIView):
 class SessionVideoRoomView(APIView):
     """
     GET /scheduling/sessions/<id>/video-room/
-    Get or create video room for a session.
+    Get or create Whereby video room for a session.
     """
     permission_classes = [IsAuthenticatedAuth0]
 
     def get(self, request, pk):
         user = request.user
+        is_mentor = False
         
         try:
             mentor = MentorProfile.objects.get(user__auth0_id=user.auth0_id)
             session = Session.objects.get(id=pk, mentor=mentor)
+            is_mentor = True
         except MentorProfile.DoesNotExist:
             try:
                 mentee = MenteeProfile.objects.get(user__auth0_id=user.auth0_id)
@@ -539,14 +550,31 @@ class SessionVideoRoomView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Generate room ID if not exists
-        room_id = session.generate_video_room_id()
-        session.save()
+        # Create Whereby room if not exists
+        if not session.whereby_room_url:
+            from scheduling.services import whereby_service
+            result = whereby_service.create_meeting(session)
+            
+            if not result:
+                # Fallback to simple room ID if Whereby fails
+                room_id = session.generate_video_room_id()
+                session.save()
+                return Response({
+                    'room_id': room_id,
+                    'provider': 'jitsi',  # Fallback
+                    'session_id': str(session.id),
+                    'error': 'Whereby unavailable, using fallback'
+                })
+        
+        # Return appropriate URL based on user role
+        room_url = session.whereby_host_room_url if is_mentor else session.whereby_room_url
         
         return Response({
-            'room_id': room_id,
+            'room_url': room_url,
+            'room_id': session.whereby_meeting_id,
             'provider': session.video_provider,
             'session_id': str(session.id),
+            'is_host': is_mentor,
         })
 
 

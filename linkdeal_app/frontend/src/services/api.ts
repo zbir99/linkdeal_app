@@ -12,7 +12,6 @@ const api = axios.create({
 })
 
 // Request interceptor - Add auth token to requests
-<<<<<<< HEAD
 // Checks both localStorage (remember me) and sessionStorage (session only)
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
@@ -25,18 +24,6 @@ api.interceptors.request.use(
     },
     (error: AxiosError) => {
         return Promise.reject(error);
-=======
-api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN)
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error: AxiosError) => {
-        return Promise.reject(error)
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
     }
 )
 
@@ -44,7 +31,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error: AxiosError<ApiError>) => {
-<<<<<<< HEAD
         // Debug: Log the original error before modification
         console.log('Original error:', error)
         console.log('Error response:', error.response)
@@ -61,17 +47,10 @@ api.interceptors.response.use(
             status: error.response?.status,
             // Preserve the original response data for detailed error handling
             response: error.response
-=======
-        const apiError: ApiError = {
-            message: error.response?.data?.message || error.message || 'An error occurred',
-            code: error.code,
-            status: error.response?.status,
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
         }
 
         // Handle specific error cases
         if (error.response?.status === 401) {
-<<<<<<< HEAD
             // Unauthorized - clear tokens from both storages and redirect to login
             localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
             localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
@@ -82,11 +61,6 @@ api.interceptors.response.use(
             sessionStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
             sessionStorage.removeItem('token_expiry');
             sessionStorage.removeItem('id_token');
-=======
-            // Unauthorized - clear token and redirect to login
-            localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN)
-            localStorage.removeItem(LOCAL_STORAGE_KEYS.USER)
->>>>>>> de4e691e5d0f1d98f54b2aa5297cb850826e7810
             // You can add navigation logic here
         }
 
