@@ -1,29 +1,139 @@
-import { FunctionComponent, useState, useRef } from 'react';
+import { FunctionComponent, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '@/services/api';
+
+interface MenteeProfileData {
+  full_name: string;
+  email: string;
+  profile_picture: string | null;
+  social_picture_url: string | null;
+  country: string;
+  field_of_study: string;
+  languages: string[] | string;
+  current_role: string | null;
+  skills: string[];
+  user_type: string;
+  session_frequency: string;
+}
 
 const ProfileModifMentee: FunctionComponent = () => {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState('Jean Dupont');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Form state
+  const [fullName, setFullName] = useState('');
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
-  const [bio, setBio] = useState('Tell us a little about yourself...');
-  const [skills, setSkills] = useState(['JavaScript', 'React', 'CSS']);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bio, setBio] = useState('');
+  const [currentRole, setCurrentRole] = useState('');
+  const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
-  const [objectives, setObjectives] = useState([
-    { id: 1, text: 'Mastering React', checked: false },
-    { id: 2, text: 'Learn TypeScript', checked: false },
-    { id: 3, text: 'Develop a portfolio', checked: false }
-  ]);
-  const [languages, setLanguages] = useState(['French', 'English']);
+  const [languages, setLanguages] = useState<string[]>([]);
   const [newLanguage, setNewLanguage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load profile data on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('auth/mentee/profile/me/');
+        const profile: MenteeProfileData = response.data;
+
+        setFullName(profile.full_name || '');
+        setCurrentRole(profile.current_role || profile.field_of_study || '');
+
+        // Set avatar from uploaded picture or social picture
+        if (profile.profile_picture) {
+          setAvatarImage(profile.profile_picture);
+        } else if (profile.social_picture_url) {
+          setAvatarImage(profile.social_picture_url);
+        }
+
+        // Load languages from API (handle both array and string formats)
+        if (profile.languages) {
+          if (Array.isArray(profile.languages)) {
+            setLanguages(profile.languages);
+          } else if (typeof profile.languages === 'string' && profile.languages.length > 0) {
+            // Legacy string format - split by comma
+            setLanguages(profile.languages.split(',').map(l => l.trim()).filter(Boolean));
+          }
+        }
+
+        // Load skills from API
+        if (profile.skills && Array.isArray(profile.skills)) {
+          setSkills(profile.skills);
+        }
+
+        setBio(`Passionate learner looking to grow my skills in ${profile.field_of_study || 'my field'}`);
+      } catch (err: any) {
+        console.error('Failed to fetch profile:', err);
+        setError('Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const getInitials = (name: string) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const handleBack = () => {
     navigate('/mentee/profile');
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    navigate('/mentee/profile');
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Send data as JSON for array fields
+      const profileData = {
+        full_name: fullName,
+        current_role: currentRole,
+        languages: languages,
+        skills: skills,
+      };
+
+      // If there's a profile picture, use FormData
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append('full_name', fullName);
+        formData.append('current_role', currentRole);
+        // Append languages and skills
+        languages.forEach(lang => formData.append('languages', lang));
+        skills.forEach(skill => formData.append('skills', skill));
+        formData.append('profile_picture', avatarFile);
+
+        await api.patch('auth/mentee/profile/me/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        await api.patch('auth/mentee/profile/me/', profileData);
+      }
+
+      setSuccess('Profile updated successfully!');
+      setTimeout(() => {
+        navigate('/mentee/profile');
+      }, 1500);
+    } catch (err: any) {
+      console.error('Failed to save profile:', err);
+      setError(err.response?.data?.error || 'Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUploadClick = () => {
@@ -33,6 +143,7 @@ const ProfileModifMentee: FunctionComponent = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setAvatarImage(e.target?.result as string);
@@ -52,12 +163,6 @@ const ProfileModifMentee: FunctionComponent = () => {
     setSkills(skills.filter(skill => skill !== skillToRemove));
   };
 
-  const handleObjectiveToggle = (id: number) => {
-    setObjectives(objectives.map(obj => 
-      obj.id === id ? { ...obj, checked: !obj.checked } : obj
-    ));
-  };
-
   const handleAddLanguage = () => {
     if (newLanguage.trim() && !languages.includes(newLanguage.trim())) {
       setLanguages([...languages, newLanguage.trim()]);
@@ -69,6 +174,14 @@ const ProfileModifMentee: FunctionComponent = () => {
     setLanguages(languages.filter(language => language !== languageToRemove));
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#1a1a2e] to-[#2a1a3e] flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#1a1a2e] to-[#2a1a3e] relative">
       {/* Background Blur Effects */}
@@ -78,16 +191,15 @@ const ProfileModifMentee: FunctionComponent = () => {
         <div className="fixed top-[28px] left-[637.6px] [filter:blur(128px)] rounded-full w-96 h-96 bg-gradient-to-br from-[rgba(128,51,208,0.4)] to-[rgba(10,32,59,0.4)] pointer-events-none z-0" />
       </div>
 
-      {/* Additional background gradients for full coverage */}
       <div className="fixed inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none z-0" />
       <div className="fixed inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none z-0" />
-      
+
       {/* Content */}
       <div className="relative z-10 px-4 sm:px-6 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           {/* Header */}
           <div className="flex flex-col gap-6">
-            <button 
+            <button
               onClick={handleBack}
               className="w-fit rounded-lg bg-white bg-opacity-5 border border-white border-opacity-10 backdrop-blur-md px-4 py-2 text-sm text-gray-400 hover:bg-white/10 transition-all duration-300"
             >
@@ -95,6 +207,18 @@ const ProfileModifMentee: FunctionComponent = () => {
             </button>
             <h1 className="text-3xl sm:text-4xl text-white font-inter">My Profile</h1>
           </div>
+
+          {/* Status Messages */}
+          {error && (
+            <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 text-sm">
+              {success}
+            </div>
+          )}
 
           {/* Main Content */}
           <div className="space-y-8">
@@ -107,22 +231,21 @@ const ProfileModifMentee: FunctionComponent = () => {
                     {avatarImage ? (
                       <img src={avatarImage} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-3xl text-white font-inter">JD</span>
+                      <span className="text-3xl text-white font-inter">{getInitials(fullName)}</span>
                     )}
                   </div>
                   {/* Upload Icon */}
-                  <button 
+                  <button
                     onClick={handleUploadClick}
                     className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#7008E7] flex items-center justify-center hover:bg-[#5a07b8] transition-all duration-300 cursor-pointer"
                   >
                     <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M0 16C0 7.16344 7.16344 0 16 0C24.8366 0 32 7.16344 32 16C32 24.8366 24.8366 32 16 32C7.16344 32 0 24.8366 0 16Z" fill="#7008E7"/>
-                      <path d="M16 10V18" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19.3327 13.3333L15.9993 10L12.666 13.3333" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M22 18V20.6667C22 21.0203 21.8595 21.3594 21.6095 21.6095C21.3594 21.8595 21.0203 22 20.6667 22H11.3333C10.9797 22 10.6406 21.8595 10.3905 21.6095C10.1405 21.3594 10 21.0203 10 20.6667V18" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M0 16C0 7.16344 7.16344 0 16 0C24.8366 0 32 7.16344 32 16C32 24.8366 24.8366 32 16 32C7.16344 32 0 24.8366 0 16Z" fill="#7008E7" />
+                      <path d="M16 10V18" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M19.3327 13.3333L15.9993 10L12.666 13.3333" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M22 18V20.6667C22 21.0203 21.8595 21.3594 21.6095 21.6095C21.3594 21.8595 21.0203 22 20.6667 22H11.3333C10.9797 22 10.6406 21.8595 10.3905 21.6095C10.1405 21.3594 10 21.0203 10 20.6667V18" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
-                  {/* Hidden file input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -131,7 +254,7 @@ const ProfileModifMentee: FunctionComponent = () => {
                     className="hidden"
                   />
                 </div>
-                
+
                 {/* Name Field */}
                 <div className="flex-1">
                   <label className="block text-sm text-gray-400 font-arimo mb-2">Full Name</label>
@@ -144,6 +267,18 @@ const ProfileModifMentee: FunctionComponent = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Current Role Section */}
+            <div className="rounded-2xl bg-white bg-opacity-5 border border-white border-opacity-10 backdrop-blur-md p-6">
+              <label className="block text-sm text-gray-400 font-arimo mb-4">Current Role</label>
+              <input
+                type="text"
+                value={currentRole}
+                onChange={(e) => setCurrentRole(e.target.value)}
+                className="w-full rounded-lg bg-white/5 border border-white/20 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#A684FF] focus:bg-white/15 transition-all duration-300"
+                placeholder="e.g., Marketing Specialist, Software Engineer..."
+              />
             </div>
 
             {/* Bio Section */}
@@ -169,7 +304,7 @@ const ProfileModifMentee: FunctionComponent = () => {
                   className="flex-1 rounded-lg bg-white/5 border border-white/20 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#A684FF] focus:bg-white/15 transition-all duration-300"
                   placeholder="Add skills....."
                 />
-                <button 
+                <button
                   onClick={handleAddSkill}
                   className="rounded-lg bg-[#7008E7] text-white px-6 py-3 hover:bg-[#5a07b8] transition-all duration-300"
                 >
@@ -178,36 +313,13 @@ const ProfileModifMentee: FunctionComponent = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, index) => (
-                  <span 
+                  <span
                     key={index}
                     className="px-3 py-1 rounded-lg bg-white/20 border border-white/30 text-xs text-white cursor-pointer hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-lg hover:shadow-[#7008E7]/20 hover:scale-105 transition-all duration-300"
                     onClick={() => handleRemoveSkill(skill)}
                   >
-                    {skill}
+                    {skill} ×
                   </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Objectives Section */}
-            <div className="rounded-2xl bg-white bg-opacity-5 border border-white border-opacity-10 backdrop-blur-md p-6">
-              <label className="block text-sm text-gray-400 font-arimo mb-4">Objectifs</label>
-              <div className="space-y-2">
-                {objectives.map((objective) => (
-                  <div 
-                    key={objective.id}
-                    onClick={() => handleObjectiveToggle(objective.id)}
-                    className="rounded-lg bg-white/5 border border-white/20 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/15 transition-all duration-300"
-                  >
-                    <div className={`w-6 h-6 rounded-full border-2 border-[#7008E7] flex items-center justify-center ${objective.checked ? 'bg-[#7008E7]' : ''}`}>
-                      {objective.checked && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-white">{objective.text}</span>
-                  </div>
                 ))}
               </div>
             </div>
@@ -224,7 +336,7 @@ const ProfileModifMentee: FunctionComponent = () => {
                   className="flex-1 rounded-lg bg-white/5 border border-white/20 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#A684FF] focus:bg-white/15 transition-all duration-300"
                   placeholder="Add language....."
                 />
-                <button 
+                <button
                   onClick={handleAddLanguage}
                   className="rounded-lg bg-[#7008E7] text-white px-6 py-3 hover:bg-[#5a07b8] transition-all duration-300"
                 >
@@ -233,28 +345,38 @@ const ProfileModifMentee: FunctionComponent = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {languages.map((language, index) => (
-                  <span 
+                  <span
                     key={index}
                     className="px-3 py-1 rounded-lg bg-[#7008E7] border border-[#A684FF] text-xs text-white cursor-pointer hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-lg hover:shadow-[#7008E7]/20 hover:scale-105 transition-all duration-300"
                     onClick={() => handleRemoveLanguage(language)}
                   >
-                    {language}
+                    {language} ×
                   </span>
                 ))}
               </div>
             </div>
 
             {/* Save Button */}
-            <button 
+            <button
               onClick={handleSave}
-              className="w-full rounded-lg bg-[#7008E7] text-white py-3 font-arimo hover:bg-[#5a07b8] transition-all duration-300 shadow-2xl shadow-[#7008E7]/40 hover:shadow-3xl hover:shadow-[#7008E7]/50 flex items-center justify-center gap-2"
+              disabled={saving}
+              className="w-full rounded-lg bg-[#7008E7] text-white py-3 font-arimo hover:bg-[#5a07b8] transition-all duration-300 shadow-2xl shadow-[#7008E7]/40 hover:shadow-3xl hover:shadow-[#7008E7]/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12.6667 2.5C13.1063 2.50626 13.5256 2.68598 13.8333 3L17 6.16667C17.314 6.47438 17.4937 6.89372 17.5 7.33333V15.8333C17.5 16.2754 17.3244 16.6993 17.0118 17.0118C16.6993 17.3244 16.2754 17.5 15.8333 17.5H4.16667C3.72464 17.5 3.30072 17.3244 2.98816 17.0118C2.67559 16.6993 2.5 16.2754 2.5 15.8333V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H12.6667Z" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.1673 17.4997V11.6663C14.1673 11.4453 14.0795 11.2334 13.9232 11.0771C13.767 10.9208 13.555 10.833 13.334 10.833H6.66732C6.4463 10.833 6.23434 10.9208 6.07806 11.0771C5.92178 11.2334 5.83398 11.4453 5.83398 11.6663V17.4997" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5.83398 2.5V5.83333C5.83398 6.05435 5.92178 6.26631 6.07806 6.42259C6.23434 6.57887 6.4463 6.66667 6.66732 6.66667H12.5007" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Save
+              {saving ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.6667 2.5C13.1063 2.50626 13.5256 2.68598 13.8333 3L17 6.16667C17.314 6.47438 17.4937 6.89372 17.5 7.33333V15.8333C17.5 16.2754 17.3244 16.6993 17.0118 17.0118C16.6993 17.3244 16.2754 17.5 15.8333 17.5H4.16667C3.72464 17.5 3.30072 17.3244 2.98816 17.0118C2.67559 16.6993 2.5 16.2754 2.5 15.8333V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H12.6667Z" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14.1673 17.4997V11.6663C14.1673 11.4453 14.0795 11.2334 13.9232 11.0771C13.767 10.9208 13.555 10.833 13.334 10.833H6.66732C6.4463 10.833 6.23434 10.9208 6.07806 11.0771C5.92178 11.2334 5.83398 11.4453 5.83398 11.6663V17.4997" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5.83398 2.5V5.83333C5.83398 6.05435 5.92178 6.26631 6.07806 6.42259C6.23434 6.57887 6.4463 6.66667 6.66732 6.66667H12.5007" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Save
+                </>
+              )}
             </button>
           </div>
         </div>

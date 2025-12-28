@@ -1,5 +1,6 @@
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '@/services/api';
 import {
   MentorListHeader,
   SearchBar,
@@ -10,40 +11,48 @@ import {
 const MentorListPage: FunctionComponent = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API call
-  const mentors: Mentor[] = [
-    {
-      id: '1',
-      name: 'Alexandre Dubois',
-      email: 'alex.dubois@email.com',
-      initials: 'AD',
-      domain: 'Web Development',
-      yearsExperience: 8,
-      submittedDate: '11/20/2024',
-      certifications: ['React Expert', 'AWS Certified'],
-    },
-    {
-      id: '2',
-      name: 'Camille Laurent',
-      email: 'c.laurent@email.com',
-      initials: 'CL',
-      domain: 'UX/UI Design',
-      yearsExperience: 5,
-      submittedDate: '11/21/2024',
-      certifications: ['Figma Master', 'Google UX'],
-    },
-    {
-      id: '3',
-      name: 'Thomas Bernard',
-      email: 't.bernard@email.com',
-      initials: 'TB',
-      domain: 'Data Science',
-      yearsExperience: 10,
-      submittedDate: '11/15/2024',
-      certifications: ['Python Expert', 'TensorFlow Certified'],
-    },
-  ];
+  // Use useEffect to fetch mentors
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        setLoading(true);
+        // Use full path or import api client correctly
+        // Assuming api.get handles the baseURL
+        const response = await api.get('/auth/admin/mentors/pending/');
+
+        // Map backend response to Mentor interface
+        const mappedMentors = response.data.results ? response.data.results.map((m: any) => ({
+          id: m.id,
+          name: m.full_name,
+          email: m.email,
+          initials: m.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+          domain: m.professional_title || 'N/A',
+          submittedDate: new Date(m.created_at).toLocaleDateString(),
+          profilePictureUrl: m.profile_picture_url,
+          socialPictureUrl: m.social_picture_url
+        })) : response.data.map((m: any) => ({
+          id: m.id,
+          name: m.full_name,
+          email: m.email,
+          initials: m.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+          domain: m.professional_title || 'N/A',
+          submittedDate: new Date(m.created_at).toLocaleDateString(),
+          profilePictureUrl: m.profile_picture_url,
+          socialPictureUrl: m.social_picture_url
+        }));
+        setMentors(mappedMentors);
+      } catch (error) {
+        console.error("Failed to fetch pending mentors", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMentors();
+  }, []); // Run once on mount
 
   // Filter mentors based on search query
   const filteredMentors = mentors.filter((mentor) => {
@@ -56,9 +65,8 @@ const MentorListPage: FunctionComponent = () => {
   });
 
   const handleReview = (mentorId: string) => {
-    // Handle review action - navigate to validation page
-    console.log('Review mentor:', mentorId);
-    navigate('/admin/validation');
+    // Navigate to dynamic validation page
+    navigate(`/admin/mentors/${mentorId}`);
   };
 
   const handleClearSearch = () => {
@@ -75,16 +83,24 @@ const MentorListPage: FunctionComponent = () => {
       {/* Content */}
       <div className="relative z-10 p-6">
         <div className="mx-auto max-w-6xl space-y-8">
-          {/* Header */}
-          <MentorListHeader
-            pendingCount={mentors.length}
-          />
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#7008E7] border-t-transparent"></div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <MentorListHeader
+                pendingCount={mentors.length}
+              />
 
-          {/* Search Bar */}
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              {/* Search Bar */}
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-          {/* Mentor List */}
-          <MentorList mentors={filteredMentors} onReview={handleReview} onClearSearch={handleClearSearch} />
+              {/* Mentor List */}
+              <MentorList mentors={filteredMentors} onReview={handleReview} onClearSearch={handleClearSearch} />
+            </>
+          )}
         </div>
       </div>
     </div>

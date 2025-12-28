@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     "corsheaders",
     'accounts.apps.AccountsConfig',  # Use custom config to load signals
     'core',
+    'scheduling',
+    'mentoring',
+    'ai_chat',  # AI Chat & Mentor Matching
 ]
 
 MIDDLEWARE = [
@@ -59,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "core.middleware.RequestIDMiddleware",
+    "core.middleware.UpdateLastActiveMiddleware",
 ]
 
 ROOT_URLCONF = 'LinkDeal.urls'
@@ -85,13 +89,13 @@ WSGI_APPLICATION = 'LinkDeal.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
 
@@ -211,7 +215,6 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL  # For error emails
 # =======================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # React dev
-    "http://localhost:3102",  # Docker frontend
     # "https://app.linkdeal.io",  # example prod domain
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -229,3 +232,19 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "DENY"
+
+# =======================
+# AI Chat Configuration
+# =======================
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+USE_MOCK_AI = os.getenv('USE_MOCK_AI', 'True').lower() == 'true'  # Default to mock mode
+
+# =======================
+# Embedding Configuration
+# =======================
+SENTENCE_EMBEDDING_MODEL = os.getenv('SENTENCE_EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')
+EMBEDDING_DIMENSION = int(os.getenv('EMBEDDING_DIMENSION', '384'))
+
+# Whereby API Key
+WHEREBY_API_KEY = os.getenv('WHEREBY_API_KEY', '')

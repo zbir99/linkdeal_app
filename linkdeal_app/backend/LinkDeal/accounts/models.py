@@ -135,7 +135,11 @@ class MentorProfile(models.Model):
     location = models.CharField(max_length=255)
     linkedin_url = models.URLField()
     bio = models.TextField()
-    languages = models.CharField(max_length=255)
+    languages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of languages (e.g., ['English', 'French'])"
+    )
     country = models.CharField(max_length=100)
 
     profile_picture = models.ImageField(
@@ -146,6 +150,13 @@ class MentorProfile(models.Model):
             FileSizeValidator(5),  # 5 MB
             FileExtensionValidator(["jpg", "jpeg", "png"])
         ]
+    )
+
+    social_picture_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="Profile picture URL from social auth (Google/LinkedIn)"
     )
 
     cv = models.FileField(
@@ -191,6 +202,28 @@ class MentorProfile(models.Model):
         null=True,
         blank=True,
         help_text="Reason provided when banning the mentor (optional)."
+    )
+
+    # Session rate (3NF: rate is a property of the mentor, not of individual sessions)
+    session_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Mentor's hourly rate for sessions (in USD or base currency)."
+    )
+
+    # Vector embedding for semantic matching (384-dimension for all-MiniLM-L6-v2)
+    embedding = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="384-dimensional vector embedding for semantic matching"
+    )
+
+    # Last activity timestamp
+    last_active = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time the mentor was active on the platform"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -247,7 +280,22 @@ class MenteeProfile(models.Model):
     email = models.EmailField(help_text="Duplicate email for UI convenience.")
     field_of_study = models.CharField(max_length=255, blank=True, default="")
     country = models.CharField(max_length=100)
-    language = models.CharField(max_length=255, blank=True, default="", help_text="Preferred language(s)")
+    languages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of preferred languages (e.g., ['English', 'French', 'Arabic'])"
+    )
+    current_role = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Current job/role (e.g., 'Marketing Specialist', 'Software Engineer')"
+    )
+    skills = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of skills (e.g., ['JavaScript', 'React', 'Python'])"
+    )
 
     profile_picture = models.ImageField(
         upload_to=mentee_profile_picture_upload_path,
@@ -265,13 +313,6 @@ class MenteeProfile(models.Model):
         null=True,
         blank=True,
         help_text="Profile picture URL from social auth (Google/LinkedIn)"
-    )
-
-    # NEW FIELDS FROM UI
-    interests = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="List of selected interests (e.g., ['Web Development', 'AI/ML', 'Data Science'])"
     )
     
     user_type = models.CharField(
@@ -328,6 +369,13 @@ class MenteeProfile(models.Model):
         null=True,
         blank=True,
         help_text="Reason provided when banning the mentee (optional)."
+    )
+
+    # Last activity timestamp
+    last_active = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time the mentee was active on the platform"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

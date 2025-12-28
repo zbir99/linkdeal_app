@@ -86,16 +86,13 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
     full_name = serializers.CharField(max_length=255)
     field_of_study = serializers.CharField(max_length=255, required=False, allow_blank=True)
     country = serializers.CharField(max_length=100)
-    language = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    profile_picture = serializers.ImageField(required=False, allow_null=True)
-    
-    # NEW FIELDS
-    interests = serializers.ListField(
+    languages = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         allow_empty=True,
-        help_text="List of selected interests"
+        help_text="List of preferred languages"
     )
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     user_type = serializers.ChoiceField(
         choices=[
             ("student", "Student"),
@@ -210,10 +207,8 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
                     "email": email,
                     "field_of_study": validated_data.get("field_of_study", ""),
                     "country": validated_data["country"],
-                    "language": validated_data.get("language", ""),
+                    "languages": validated_data.get("languages", []),
                     "profile_picture": validated_data.get("profile_picture"),
-                    # NEW FIELDS
-                    "interests": validated_data.get("interests", []),
                     "user_type": validated_data.get("user_type"),
                     "session_frequency": validated_data.get("session_frequency"),
                 }
@@ -225,11 +220,9 @@ class MenteeRegisterSerializer(BaseRegisterSerializer):
                 profile.email = email
                 profile.field_of_study = validated_data.get("field_of_study", profile.field_of_study)
                 profile.country = validated_data["country"]
-                profile.language = validated_data.get("language", profile.language)
+                profile.languages = validated_data.get("languages", profile.languages)
                 if validated_data.get("profile_picture"):
                     profile.profile_picture = validated_data["profile_picture"]
-                # NEW FIELDS
-                profile.interests = validated_data.get("interests", profile.interests)
                 profile.user_type = validated_data.get("user_type", profile.user_type)
                 profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
                 profile.save()
@@ -280,18 +273,15 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     field_of_study = serializers.CharField(max_length=255, required=False, allow_blank=True)
     country = serializers.CharField(max_length=100)
-    language = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    profile_picture = serializers.ImageField(required=False, allow_null=True)
-    social_picture_url = serializers.URLField(max_length=500, required=False, allow_blank=True, allow_null=True)
-    link_consent = serializers.BooleanField(required=False, default=False)
-    
-    # NEW FIELDS
-    interests = serializers.ListField(
+    languages = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         allow_empty=True,
-        help_text="List of selected interests"
+        help_text="List of preferred languages"
     )
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+    social_picture_url = serializers.URLField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    link_consent = serializers.BooleanField(required=False, default=False)
     user_type = serializers.ChoiceField(
         choices=[
             ("student", "Student"),
@@ -411,11 +401,9 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                     "email": email,
                     "field_of_study": validated_data.get("field_of_study", ""),
                     "country": validated_data["country"],
-                    "language": validated_data.get("language", ""),
+                    "languages": validated_data.get("languages", []),
                     "profile_picture": validated_data.get("profile_picture"),
                     "social_picture_url": social_picture,  # Store Google/LinkedIn picture URL
-                    # NEW FIELDS
-                    "interests": validated_data.get("interests", []),
                     "user_type": validated_data.get("user_type"),
                     "session_frequency": validated_data.get("session_frequency"),
                 }
@@ -427,11 +415,9 @@ class SocialMenteeRegisterSerializer(serializers.Serializer):
                 profile.email = email
                 profile.field_of_study = validated_data.get("field_of_study", profile.field_of_study)
                 profile.country = validated_data["country"]
-                profile.language = validated_data.get("language", profile.language)
+                profile.languages = validated_data.get("languages", profile.languages)
                 if validated_data.get("profile_picture"):
                     profile.profile_picture = validated_data["profile_picture"]
-                # NEW FIELDS
-                profile.interests = validated_data.get("interests", profile.interests)
                 profile.user_type = validated_data.get("user_type", profile.user_type)
                 profile.session_frequency = validated_data.get("session_frequency", profile.session_frequency)
                 profile.save()
@@ -650,9 +636,15 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
     location = serializers.CharField(max_length=255)
     linkedin_url = serializers.URLField(required=False, allow_blank=True)
     bio = serializers.CharField(required=False, allow_blank=True)
-    languages = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    languages = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of languages"
+    )
     country = serializers.CharField(max_length=100)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
+    social_picture_url = serializers.URLField(max_length=500, required=False, allow_blank=True, allow_null=True)
     cv = serializers.FileField(required=True)
     link_consent = serializers.BooleanField(required=False, default=False)
     
@@ -743,6 +735,10 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
         # Create or update MentorProfile (status = pending for new registrations)
         # Note: If profile creation fails, transaction.atomic will rollback AppUser creation
         # but Auth0 user will remain (external service limitation - handled by cleanup command)
+        
+        # Get social picture URL from request data (sent by frontend from sessionStorage)
+        social_picture = validated_data.get('social_picture_url')
+        
         try:
             profile, profile_created = MentorProfile.objects.get_or_create(
                 user=app_user,
@@ -756,6 +752,7 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                     "languages": validated_data["languages"],
                     "country": validated_data["country"],
                     "profile_picture": validated_data.get("profile_picture"),
+                    "social_picture_url": social_picture,
                     "cv": validated_data["cv"],
                     "status": "pending",  # Always pending for new mentor registrations
                     # NEW FIELD
@@ -779,6 +776,7 @@ class SocialMentorRegisterSerializer(serializers.Serializer):
                     profile.cv = validated_data["cv"]
                 # NEW FIELD
                 profile.skills = validated_data.get("skills", profile.skills)
+                profile.social_picture_url = social_picture
                 # Only set to pending if currently pending (don't override approved/rejected/banned)
                 if profile.status == "pending":
                     profile.status = "pending"
@@ -811,6 +809,8 @@ class AdminMentorSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
     cv_url = serializers.SerializerMethodField()
     banned_by_email = serializers.SerializerMethodField()
+    sessions_count = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = MentorProfile
@@ -829,9 +829,13 @@ class AdminMentorSerializer(serializers.ModelSerializer):
             "ban_reason",
             "banned_by_email",
             "created_at",
+            "last_active",
             "profile_picture_url",
+            "social_picture_url",
             "cv_url",
             "skills",
+            "sessions_count",
+            "total_amount",
         ]
 
     def get_profile_picture_url(self, obj):
@@ -855,6 +859,18 @@ class AdminMentorSerializer(serializers.ModelSerializer):
             return obj.banned_by.email
         return None
 
+    def get_sessions_count(self, obj):
+        """Get the count of completed sessions for this mentor."""
+        from scheduling.models import Session
+        return Session.objects.filter(mentor=obj, status='completed').count()
+
+    def get_total_amount(self, obj):
+        """Get the total amount earned from completed sessions."""
+        from scheduling.models import Session
+        from django.db.models import Sum
+        result = Session.objects.filter(mentor=obj, status='completed').aggregate(total=Sum('price'))
+        return float(result['total'] or 0)
+
 
 class AdminMentorDetailSerializer(AdminMentorSerializer):
     """
@@ -876,6 +892,8 @@ class AdminMenteeSerializer(serializers.ModelSerializer):
     auth0_id = serializers.CharField(source="user.auth0_id", read_only=True)
     profile_picture_url = serializers.SerializerMethodField()
     banned_by_email = serializers.SerializerMethodField()
+    sessions_count = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = MenteeProfile
@@ -892,7 +910,11 @@ class AdminMenteeSerializer(serializers.ModelSerializer):
             "ban_reason",
             "banned_by_email",
             "created_at",
+            "last_active",
             "profile_picture_url",
+            "social_picture_url",
+            "sessions_count",
+            "total_amount",
         ]
 
     def get_profile_picture_url(self, obj):
@@ -907,6 +929,18 @@ class AdminMenteeSerializer(serializers.ModelSerializer):
         if obj.banned_by:
             return obj.banned_by.email
         return None
+
+    def get_sessions_count(self, obj):
+        """Get the count of completed sessions for this mentee."""
+        from scheduling.models import Session
+        return Session.objects.filter(mentee=obj, status='completed').count()
+
+    def get_total_amount(self, obj):
+        """Get the total amount spent on completed sessions."""
+        from scheduling.models import Session
+        from django.db.models import Sum
+        result = Session.objects.filter(mentee=obj, status='completed').aggregate(total=Sum('price'))
+        return float(result['total'] or 0)
 
 
 # ---------------------------------------------------------------

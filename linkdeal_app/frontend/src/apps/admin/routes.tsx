@@ -18,7 +18,11 @@ export const adminRoutes: RouteObject[] = [
         element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><MentorListPage /></RoleProtectedRoute>
     },
     {
-        path: '/admin/validation',
+        path: '/admin/mentors/:id',
+        element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Validation /></RoleProtectedRoute>
+    },
+    {
+        path: '/admin/validation', // Keep for backward compatibility or direct access if needed, but primary is :id
         element: <RoleProtectedRoute allowedRoles={['admin', 'super_admin']}><Validation /></RoleProtectedRoute>
     },
     {

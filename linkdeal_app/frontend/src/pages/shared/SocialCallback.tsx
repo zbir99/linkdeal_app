@@ -82,21 +82,41 @@ export const SocialCallback = (): JSX.Element => {
                         <p className="text-white/70 text-sm">Please wait while we verify your credentials.</p>
                     </div>
                 ) : error ? (
-                    <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    error.toLowerCase().includes('pending') ? (
+                        <div className="text-center">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-xl text-white font-medium mb-2">Account Pending Approval</h2>
+                            <p className="text-white/70 text-sm mb-6 leading-relaxed px-4">
+                                Your mentor account is currently under review. You will be notified via email once an administrator reviews your application.
+                            </p>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300"
+                            >
+                                Back to Home
+                            </button>
                         </div>
-                        <h2 className="text-xl text-white font-medium mb-2">Login Failed</h2>
-                        <p className="text-red-400 text-sm mb-6">{error}</p>
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300"
-                        >
-                            Back to Login
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="text-center">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <h2 className="text-xl text-white font-medium mb-2">Login Failed</h2>
+                            <p className="text-red-400 text-sm mb-6">{error}</p>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="w-full h-12 bg-[#7008e7] rounded-xl text-white font-medium hover:bg-[#6007c5] transition-all duration-300"
+                            >
+                                Back to Login
+                            </button>
+                        </div>
+                    )
                 ) : null}
             </div>
         </div>

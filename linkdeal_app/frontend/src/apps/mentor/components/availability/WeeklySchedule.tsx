@@ -1,6 +1,7 @@
 import { FunctionComponent } from 'react';
 
 interface TimeSlot {
+  id?: string;
   start: string;
   end: string;
 }
@@ -22,18 +23,18 @@ export const WeeklySchedule: FunctionComponent<WeeklyScheduleProps> = ({ schedul
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-[#7008E7]/20 flex items-center justify-center group-hover:bg-[#7008E7]/30 transition-colors duration-200">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2"/>
-            <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2" />
+            <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <span className="text-white/90 font-medium">{slot.start} - {slot.end}</span>
       </div>
-      <button 
+      <button
         onClick={() => onRemoveSlot(day, slotIndex)}
         className="text-white/50 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-500/10"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
     </div>
@@ -47,7 +48,7 @@ export const WeeklySchedule: FunctionComponent<WeeklyScheduleProps> = ({ schedul
           {schedule.slots.length} slots
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {schedule.slots.length > 0 ? (
           schedule.slots.map((slot, index) => (
@@ -75,8 +76,8 @@ export const WeeklySchedule: FunctionComponent<WeeklyScheduleProps> = ({ schedul
         <div className="bg-white/5 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 mb-4 rounded-full bg-purple-500/10 flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2"/>
-              <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2" />
+              <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <h3 className="text-lg font-medium text-white mb-2">No Availability Set</h3>

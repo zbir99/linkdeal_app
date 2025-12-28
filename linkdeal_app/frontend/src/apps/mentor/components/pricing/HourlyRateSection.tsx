@@ -1,15 +1,25 @@
 import { FunctionComponent, useState, useEffect, useRef } from 'react';
 
-export const HourlyRateSection: FunctionComponent = () => {
-  const [hourlyRate, setHourlyRate] = useState('80');
-  const [currency, setCurrency] = useState('EUR (€)');
+interface HourlyRateSectionProps {
+  hourlyRate: string;
+  setHourlyRate: (rate: string) => void;
+  currency: string;
+  setCurrency: (currency: string) => void;
+}
+
+export const HourlyRateSection: FunctionComponent<HourlyRateSectionProps> = ({
+  hourlyRate,
+  setHourlyRate,
+  currency,
+  setCurrency
+}) => {
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
 
   const TrendIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10.6667 4.66602H14.6667V8.66602" stroke="#C4B4FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M14.6666 4.66602L8.99992 10.3327L5.66659 6.99935L1.33325 11.3327" stroke="#C4B4FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10.6667 4.66602H14.6667V8.66602" stroke="#C4B4FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14.6666 4.66602L8.99992 10.3327L5.66659 6.99935L1.33325 11.3327" stroke="#C4B4FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 
@@ -32,7 +42,25 @@ export const HourlyRateSection: FunctionComponent = () => {
     setCurrencyDropdownOpen(!currencyDropdownOpen);
   };
 
-  const currencies = ['EUR (€)', 'USD ($)', 'GBP (£)', 'JPY (¥)', 'CAD ($)', 'AUD ($)', 'CHF (Fr)', 'CNY (¥)'];
+  const currencies = [
+    { code: 'USD', symbol: '$', display: 'USD ($)' },
+    { code: 'EUR', symbol: '€', display: 'EUR (€)' },
+    { code: 'GBP', symbol: '£', display: 'GBP (£)' },
+    { code: 'MAD', symbol: 'DH', display: 'MAD (DH)' },
+    { code: 'CAD', symbol: '$', display: 'CAD ($)' },
+    { code: 'AUD', symbol: '$', display: 'AUD ($)' },
+    { code: 'CHF', symbol: 'Fr', display: 'CHF (Fr)' },
+  ];
+
+  const getCurrencySymbol = () => {
+    const curr = currencies.find(c => c.code === currency);
+    return curr?.symbol || '$';
+  };
+
+  const getCurrencyDisplay = () => {
+    const curr = currencies.find(c => c.code === currency);
+    return curr?.display || 'USD ($)';
+  };
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
@@ -70,41 +98,45 @@ export const HourlyRateSection: FunctionComponent = () => {
           appearance: textfield;
         }
       `}</style>
-      
+
       <h2 className="text-xl font-semibold text-white">Hourly Rate</h2>
-      
+
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Amount */}
           <div className="space-y-2">
             <label className="text-sm text-white/70">Amount</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">€</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">
+                {getCurrencySymbol()}{getCurrencySymbol().length > 1 ? '\u00A0' : ''}
+              </span>
               <input
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(e.target.value)}
-                className="w-full h-12 pl-8 pr-16 bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] text-white placeholder-[#697282]/50 outline-none hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 focus:text-white focus:bg-[#ffffff1a] focus:border-purple-400/50"
+                className={`w-full h-12 pr-16 bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] text-white placeholder-[#697282]/50 outline-none hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 focus:text-white focus:bg-[#ffffff1a] focus:border-purple-400/50 ${getCurrencySymbol().length > 1 ? 'pl-12' : 'pl-8'}`}
                 placeholder="80"
+                min="0"
+                step="1"
               />
               {/* Custom increment/decrement buttons */}
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex flex-col gap-0.5">
                 <button
                   type="button"
-                  onClick={() => setHourlyRate((prev) => String(Math.max(0, Number(prev) + 1)))}
+                  onClick={() => setHourlyRate(String(Math.max(0, Number(hourlyRate) + 5)))}
                   className="w-8 h-4 flex items-center justify-center bg-white/10 hover:bg-purple-500/30 rounded-md transition-all duration-200 group"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 9V3M3 6L6 3L9 6" stroke="#a0a0a0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-purple-300 transition-colors"/>
+                    <path d="M6 9V3M3 6L6 3L9 6" stroke="#a0a0a0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-purple-300 transition-colors" />
                   </svg>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHourlyRate((prev) => String(Math.max(0, Number(prev) - 1)))}
+                  onClick={() => setHourlyRate(String(Math.max(0, Number(hourlyRate) - 5)))}
                   className="w-8 h-4 flex items-center justify-center bg-white/10 hover:bg-purple-500/30 rounded-md transition-all duration-200 group"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 3V9M9 6L6 9L3 6" stroke="#a0a0a0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-purple-300 transition-colors"/>
+                    <path d="M6 3V9M9 6L6 9L3 6" stroke="#a0a0a0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-purple-300 transition-colors" />
                   </svg>
                 </button>
               </div>
@@ -115,13 +147,13 @@ export const HourlyRateSection: FunctionComponent = () => {
           <div className="space-y-2">
             <label className="text-sm text-white/70">Currency</label>
             <div className="relative w-full" ref={currencyDropdownRef}>
-              <div 
-                className="flex h-9 items-center justify-between px-3 py-0 relative self-stretch w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
+              <div
+                className="flex h-12 items-center justify-between px-3 py-0 relative self-stretch w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
                 onClick={handleCurrencyDropdownClick}
               >
                 <div className="flex h-5 items-center gap-2 relative">
                   <div className="w-fit whitespace-nowrap relative mt-[-1.00px] text-[#a0a0a0] text-sm text-center tracking-[0] leading-5 group-hover:text-white transition-colors duration-300">
-                    {currency}
+                    {getCurrencyDisplay()}
                   </div>
                 </div>
                 <div className="relative w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300">
@@ -135,14 +167,17 @@ export const HourlyRateSection: FunctionComponent = () => {
                   <div className="py-1">
                     {currencies.map((curr) => (
                       <div
-                        key={curr}
-                        className="px-3 py-2 text-sm text-[#a0a0a0] hover:bg-purple-600/30 hover:text-purple-200 cursor-pointer transition-colors duration-200"
+                        key={curr.code}
+                        className={`px-3 py-2 text-sm cursor-pointer transition-colors duration-200 ${currency === curr.code
+                          ? 'bg-purple-600/40 text-purple-200'
+                          : 'text-[#a0a0a0] hover:bg-purple-600/30 hover:text-purple-200'
+                          }`}
                         onClick={() => {
-                          setCurrency(curr);
+                          setCurrency(curr.code);
                           setCurrencyDropdownOpen(false);
                         }}
                       >
-                        {curr}
+                        {curr.display}
                       </div>
                     ))}
                   </div>
@@ -158,7 +193,7 @@ export const HourlyRateSection: FunctionComponent = () => {
             <TrendIcon />
           </div>
           <p className="text-sm text-[#C4B4FF]">
-            Recommended rate for your experience level: €70-100/hour
+            Recommended rate for your experience level: {getCurrencySymbol()}50-100/hour
           </p>
         </div>
       </div>

@@ -11,6 +11,7 @@ export const MentorProfile = (): JSX.Element => {
     const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
     const [imageError, setImageError] = useState<string>("");
     const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
+    const [titleDropdownOpen, setTitleDropdownOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
     const [cvFile, setCvFile] = useState<File | null>(null);
@@ -18,7 +19,41 @@ export const MentorProfile = (): JSX.Element => {
     const cvInputRef = useRef<HTMLInputElement>(null);
     const languageDropdownRef = useRef<HTMLDivElement>(null);
     const languageDropdownMobileRef = useRef<HTMLDivElement>(null);
+    const titleDropdownRef = useRef<HTMLDivElement>(null);
+    const titleDropdownMobileRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    // Professional Title options
+    const professionalTitles = [
+        'Full-Stack Developer',
+        'Frontend Developer',
+        'Backend Developer',
+        'Mobile Developer',
+        'DevOps Engineer',
+        'Data Scientist',
+        'Machine Learning Engineer',
+        'AI Engineer',
+        'Cloud Architect',
+        'Software Architect',
+        'UX/UI Designer',
+        'Product Designer',
+        'Product Manager',
+        'Project Manager',
+        'Engineering Manager',
+        'Tech Lead',
+        'CTO',
+        'Startup Founder',
+        'Business Analyst',
+        'Data Analyst',
+        'Cybersecurity Specialist',
+        'QA Engineer',
+        'Solutions Architect',
+        'Technical Writer',
+        'Blockchain Developer',
+        'Game Developer',
+        'Embedded Systems Engineer',
+        'Other'
+    ];
 
     // Social auth detection state
     const [isSocialAuth, setIsSocialAuth] = useState(false);
@@ -36,7 +71,7 @@ export const MentorProfile = (): JSX.Element => {
         professionalTitle: string;
         location: string;
         linkedinProfile: string;
-        language: string;
+        languages: string[];
         email: string;
         password: string;
         confirmPassword: string;
@@ -46,7 +81,7 @@ export const MentorProfile = (): JSX.Element => {
         professionalTitle: "",
         location: "",
         linkedinProfile: "",
-        language: "",
+        languages: [],
         email: "",
         password: "",
         confirmPassword: "",
@@ -60,7 +95,7 @@ export const MentorProfile = (): JSX.Element => {
             formData.professionalTitle ||
             formData.location ||
             formData.linkedinProfile ||
-            formData.language ||
+            formData.languages.length > 0 ||
             formData.email ||
             formData.bio ||
             profileImage ||
@@ -322,10 +357,11 @@ export const MentorProfile = (): JSX.Element => {
                     professional_title: formData.professionalTitle,
                     location: formData.location,
                     linkedin_url: linkedinUrl,
-                    languages: formData.language,
+                    languages: formData.languages,
                     country: formData.location,
                     bio: formData.bio,
                     full_name: formData.fullName, // Pre-filled from social auth
+                    social_picture_url: sessionStorage.getItem('social_auth_picture'), // Add social picture URL
                 };
 
                 // Add profile picture if available
@@ -339,6 +375,7 @@ export const MentorProfile = (): JSX.Element => {
                 }
 
                 console.log('Submitting social mentor registration:', socialData);
+                console.log('DEBUG: social_auth_picture from sessionStorage:', sessionStorage.getItem('social_auth_picture'));
 
                 // Store for potential linking flow
                 setPendingRegistrationData(socialData);
@@ -372,7 +409,7 @@ export const MentorProfile = (): JSX.Element => {
                 formDataToSend.append('professional_title', formData.professionalTitle);
                 formDataToSend.append('location', formData.location);
                 formDataToSend.append('linkedin_url', linkedinUrl);
-                formDataToSend.append('languages', formData.language);
+                formData.languages.forEach(lang => formDataToSend.append('languages', lang));
                 formDataToSend.append('country', formData.location);
                 formDataToSend.append('bio', formData.bio);
                 formDataToSend.append('cv', cvFile);
@@ -692,20 +729,44 @@ export const MentorProfile = (): JSX.Element => {
                                         </div>
                                     )}
 
-                                    <div className="flex flex-col h-[77px] items-start gap-2 relative self-stretch w-full">
+                                    <div className="flex flex-col items-start gap-2 relative self-stretch w-full">
                                         <div className="relative self-stretch w-full h-[21px]">
                                             <div className="absolute top-px left-0 [font-family:'Arimo-Regular',Helvetica] font-normal text-[#d0d5db] text-sm tracking-[0] leading-[21px] whitespace-nowrap">
                                                 Professional Title
                                             </div>
                                         </div>
 
-                                        <input
-                                            type="text"
-                                            value={formData.professionalTitle}
-                                            onChange={(e) => handleInputChange('professionalTitle', e.target.value)}
-                                            placeholder="e.g. Full-Stack Developer, UX Designer"
-                                            className="h-12 px-3 py-1 relative self-stretch w-full bg-[#ffffff0d] rounded-xl overflow-hidden border-[0.8px] border-solid border-[#fffefe1a] [font-family:'Arimo-Regular',Helvetica] font-normal text-white text-sm tracking-[0] leading-5 whitespace-nowrap focus:outline-none focus:border-[#a683ff] focus:bg-[#ffffff1a] hover:bg-[#ffffff3a] hover:border-[#d4b5ff] hover:shadow-lg hover:shadow-[#7008e7]/20 transition-all duration-300 transform hover:scale-[1.02]"
-                                        />
+                                        <div className="relative w-full" ref={titleDropdownRef}>
+                                            <div
+                                                className="h-12 px-3 py-1 relative self-stretch w-full bg-[#ffffff0d] rounded-xl overflow-hidden border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff3a] hover:border-[#d4b5ff] hover:shadow-lg hover:shadow-[#7008e7]/20 transition-all duration-300 flex items-center justify-between"
+                                                onClick={() => setTitleDropdownOpen(!titleDropdownOpen)}
+                                            >
+                                                <span className={`[font-family:'Arimo-Regular',Helvetica] font-normal text-sm ${formData.professionalTitle ? 'text-white' : 'text-[#d0d5db]'}`}>
+                                                    {formData.professionalTitle || 'Select your professional title'}
+                                                </span>
+                                                <svg className={`w-5 h-5 transition-transform duration-300 ${titleDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M4 6L8 10L12 6" stroke="#C8B0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </div>
+                                            {titleDropdownOpen && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a2e]/95 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl shadow-purple-500/20 z-50 max-h-56 overflow-y-auto">
+                                                    <div className="py-2">
+                                                        {professionalTitles.map((title) => (
+                                                            <div
+                                                                key={title}
+                                                                className={`px-4 py-3 text-sm cursor-pointer transition-all duration-200 [font-family:'Arimo-Regular',Helvetica] ${formData.professionalTitle === title ? 'bg-purple-600/40 text-white' : 'text-white/70 hover:bg-purple-600/20 hover:text-white'}`}
+                                                                onClick={() => {
+                                                                    handleInputChange('professionalTitle', title);
+                                                                    setTitleDropdownOpen(false);
+                                                                }}
+                                                            >
+                                                                {title}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col h-[77px] items-start gap-2 relative self-stretch w-full">
@@ -724,10 +785,10 @@ export const MentorProfile = (): JSX.Element => {
                                         />
                                     </div>
 
-                                    <div className="flex flex-col h-[77px] items-start gap-2 relative self-stretch w-full">
+                                    <div className="flex flex-col items-start gap-2 relative self-stretch w-full">
                                         <div className="relative self-stretch w-full h-[21px]">
                                             <div className="absolute top-px left-0 [font-family:'Arimo-Regular',Helvetica] font-normal text-[#d0d5db] text-sm tracking-[0] leading-[21px] whitespace-nowrap">
-                                                Language
+                                                Languages
                                             </div>
                                         </div>
 
@@ -737,8 +798,8 @@ export const MentorProfile = (): JSX.Element => {
                                                 onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
                                             >
                                                 <div className="flex items-center gap-2 relative">
-                                                    <div className={`w-fit whitespace-nowrap [font-family:'Arimo-Regular',Helvetica] font-normal text-sm transition-colors duration-300 ${formData.language ? 'text-white' : 'text-[#8891A1] group-hover:text-[#B0B8C8]'}`}>
-                                                        {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'Select your language'}
+                                                    <div className="w-fit whitespace-nowrap [font-family:'Arimo-Regular',Helvetica] font-normal text-sm text-[#8891A1] group-hover:text-[#B0B8C8] transition-colors duration-300">
+                                                        {formData.languages.length > 0 ? `${formData.languages.length} language(s) selected` : 'Select languages'}
                                                     </div>
                                                 </div>
                                                 <div className="relative w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
@@ -753,19 +814,56 @@ export const MentorProfile = (): JSX.Element => {
                                                         {['English', 'French', 'Spanish', 'German', 'Italian', 'Portuguese', 'Arabic', 'Chinese', 'Japanese'].map((lang) => (
                                                             <div
                                                                 key={lang}
-                                                                className="px-4 py-3 text-sm text-[#B0B8C8] hover:bg-gradient-to-r hover:from-purple-600/40 hover:to-purple-500/30 hover:text-white cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10"
+                                                                className={`px-4 py-3 text-sm cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10 flex items-center justify-between ${formData.languages.includes(lang)
+                                                                    ? 'bg-purple-600/40 text-white'
+                                                                    : 'text-[#B0B8C8] hover:bg-gradient-to-r hover:from-purple-600/40 hover:to-purple-500/30 hover:text-white'
+                                                                    }`}
                                                                 onClick={() => {
-                                                                    handleInputChange('language', lang.toLowerCase());
-                                                                    setLanguageDropdownOpen(false);
+                                                                    if (formData.languages.includes(lang)) {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            languages: prev.languages.filter(l => l !== lang)
+                                                                        }));
+                                                                    } else {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            languages: [...prev.languages, lang]
+                                                                        }));
+                                                                    }
                                                                 }}
                                                             >
                                                                 {lang}
+                                                                {formData.languages.includes(lang) && (
+                                                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Selected Languages Chips */}
+                                        {formData.languages.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {formData.languages.map((lang, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="px-3 py-1 rounded-lg bg-[#7008E7]/30 border border-[#A684FF]/50 text-sm text-white cursor-pointer hover:bg-[#7008E7]/50 transition-all duration-300"
+                                                        onClick={() => {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                languages: prev.languages.filter(l => l !== lang)
+                                                            }));
+                                                        }}
+                                                    >
+                                                        {lang} ×
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Password and Confirm Password - hidden for social auth */}
@@ -1009,7 +1107,6 @@ export const MentorProfile = (): JSX.Element => {
                         {[
                             // Full Name - only show if NOT social auth
                             ...(!isSocialAuth ? [{ label: 'Full Name', field: 'fullName', placeholder: 'Jane Doe', type: 'text' }] : []),
-                            { label: 'Professional Title', field: 'professionalTitle', placeholder: 'Lead Product Manager @ Company', type: 'text' },
                             { label: 'Location', field: 'location', placeholder: 'Paris, France', type: 'text' },
                             // LinkedIn Profile - only show if NOT LinkedIn social auth
                             ...(!(isSocialAuth && socialAuthProvider === 'linkedin') ? [{ label: 'LinkedIn Profile', field: 'linkedinProfile', placeholder: 'https://linkedin.com/in/...', type: 'url' }] : [])
@@ -1026,6 +1123,40 @@ export const MentorProfile = (): JSX.Element => {
                             </div>
                         ))}
 
+                        {/* Professional Title Dropdown - Mobile */}
+                        <div className="space-y-2 relative" ref={titleDropdownMobileRef}>
+                            <label className="text-sm text-white/70">Professional Title</label>
+                            <div
+                                className="flex h-11 items-center justify-between px-3 bg-transparent rounded-xl border border-white/15 cursor-pointer hover:border-[#7008e7]/60 transition-all duration-300"
+                                onClick={() => setTitleDropdownOpen(!titleDropdownOpen)}
+                            >
+                                <span className={`text-sm ${formData.professionalTitle ? 'text-white' : 'text-white/50'}`}>
+                                    {formData.professionalTitle || 'Select your professional title'}
+                                </span>
+                                <svg className={`w-4 h-4 transition-transform duration-300 ${titleDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6L8 10L12 6" stroke="#C8B0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </div>
+                            {titleDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a2e]/95 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl shadow-purple-500/20 z-50 max-h-48 overflow-y-auto">
+                                    <div className="py-2">
+                                        {professionalTitles.map((title) => (
+                                            <div
+                                                key={title}
+                                                className={`px-4 py-2 text-sm cursor-pointer transition-all duration-200 ${formData.professionalTitle === title ? 'bg-purple-600/40 text-white' : 'text-white/70 hover:bg-purple-600/20 hover:text-white'}`}
+                                                onClick={() => {
+                                                    handleInputChange('professionalTitle', title);
+                                                    setTitleDropdownOpen(false);
+                                                }}
+                                            >
+                                                {title}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Email - hidden for social auth */}
                         {!isSocialAuth && (
                             <div className="space-y-2">
@@ -1041,13 +1172,13 @@ export const MentorProfile = (): JSX.Element => {
                         )}
 
                         <div className="space-y-2 relative" ref={languageDropdownMobileRef}>
-                            <label className="text-sm text-white/70">Language</label>
+                            <label className="text-sm text-white/70">Languages</label>
                             <div
                                 className="flex h-11 items-center justify-between px-3 bg-transparent rounded-xl border border-white/15 cursor-pointer hover:border-[#7008e7]/60 transition-all duration-300 group"
                                 onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
                             >
-                                <div className={`[font-family:'Arimo-Regular',Helvetica] text-sm transition-colors duration-300 ${formData.language ? 'text-white' : 'text-white/50 group-hover:text-white/70'}`}>
-                                    {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'Select your language'}
+                                <div className="[font-family:'Arimo-Regular',Helvetica] text-sm text-white/50 group-hover:text-white/70 transition-colors duration-300">
+                                    {formData.languages.length > 0 ? `${formData.languages.length} language(s) selected` : 'Select languages'}
                                 </div>
                                 <svg className={`w-5 h-5 transition-transform duration-300 ${languageDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4 6L8 10L12 6" stroke="#C8B0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1059,16 +1190,52 @@ export const MentorProfile = (): JSX.Element => {
                                         {['English', 'French', 'Spanish', 'German', 'Italian', 'Portuguese', 'Arabic', 'Chinese', 'Japanese'].map((lang) => (
                                             <div
                                                 key={`mobile-${lang}`}
-                                                className="px-4 py-3 text-sm text-[#B0B8C8] hover:bg-gradient-to-r hover:from-purple-600/40 hover:to-purple-500/30 hover:text-white cursor-pointer transition-all duration-200"
+                                                className={`px-4 py-3 text-sm cursor-pointer transition-all duration-200 flex items-center justify-between ${formData.languages.includes(lang)
+                                                    ? 'bg-purple-600/40 text-white'
+                                                    : 'text-[#B0B8C8] hover:bg-gradient-to-r hover:from-purple-600/40 hover:to-purple-500/30 hover:text-white'
+                                                    }`}
                                                 onClick={() => {
-                                                    handleInputChange('language', lang.toLowerCase());
-                                                    setLanguageDropdownOpen(false);
+                                                    if (formData.languages.includes(lang)) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            languages: prev.languages.filter(l => l !== lang)
+                                                        }));
+                                                    } else {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            languages: [...prev.languages, lang]
+                                                        }));
+                                                    }
                                                 }}
                                             >
                                                 {lang}
+                                                {formData.languages.includes(lang) && (
+                                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+                            {/* Selected Languages Chips */}
+                            {formData.languages.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {formData.languages.map((lang, index) => (
+                                        <span
+                                            key={index}
+                                            className="px-3 py-1 rounded-lg bg-[#7008E7]/30 border border-[#A684FF]/50 text-sm text-white cursor-pointer hover:bg-[#7008E7]/50 transition-all duration-300"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    languages: prev.languages.filter(l => l !== lang)
+                                                }));
+                                            }}
+                                        >
+                                            {lang} ×
+                                        </span>
+                                    ))}
                                 </div>
                             )}
                         </div>

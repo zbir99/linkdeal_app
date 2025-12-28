@@ -57,7 +57,8 @@ export const MenteeStepThree = (): JSX.Element => {
                 full_name: signupData.full_name,
                 field_of_study: signupData.field_of_study || '',
                 country: signupData.country,
-                language: signupData.language || '',
+                // Backend expects 'languages' as an array, not 'language' as a string
+                languages: signupData.language ? [signupData.language] : [],
                 interests: signupData.interests || [],
                 user_type: signupData.selected_role || 'other',  // Default to 'other' if not selected
                 session_frequency: frequencyValue

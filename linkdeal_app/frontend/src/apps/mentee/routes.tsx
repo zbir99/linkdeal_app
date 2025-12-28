@@ -64,15 +64,15 @@ export const menteeRoutes: RouteObject[] = [
         element: <ProtectedRoute><FindMentor /></ProtectedRoute>
     },
     {
-        path: '/mentee/description',
+        path: '/mentee/description/:id',
         element: <ProtectedRoute><Description /></ProtectedRoute>
     },
     {
-        path: '/mentee/booking',
+        path: '/mentee/booking/:mentorId',
         element: <ProtectedRoute><Booking /></ProtectedRoute>
     },
     {
-        path: '/mentee/rate',
+        path: '/mentee/rate/:sessionId',
         element: <ProtectedRoute><Rate /></ProtectedRoute>
     },
     {
@@ -88,7 +88,7 @@ export const menteeRoutes: RouteObject[] = [
         element: <ProtectedRoute><Payment_history /></ProtectedRoute>
     },
     {
-        path: '/mentee/video-call',
+        path: '/mentee/video-call/:sessionId',
         element: <ProtectedRoute><Vd_call /></ProtectedRoute>
     },
     {

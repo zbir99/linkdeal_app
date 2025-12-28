@@ -71,7 +71,7 @@ export const mentorRoutes: RouteObject[] = [
     element: <ProtectedRoute><Support_tickets /></ProtectedRoute>
   },
   {
-    path: '/mentor/vd',
+    path: '/mentor/vd/:sessionId',
     element: <ProtectedRoute><Vd /></ProtectedRoute>
   },
   {

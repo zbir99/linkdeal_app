@@ -1,6 +1,90 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
+import api from '@/services/api';
+
+interface SessionStats {
+  total_sessions: number;
+  completed_sessions: number;
+  upcoming_sessions: number;
+  cancelled_sessions: number;
+  total_hours: number;
+  this_month_sessions: number;
+  this_month_hours: number;
+}
+
+interface NextSession {
+  id: string;
+  scheduled_at: string;
+  mentor_name: string;
+  session_type_name: string;
+}
 
 const StatsCards: FunctionComponent = () => {
+  const [stats, setStats] = useState<SessionStats | null>(null);
+  const [nextSession, setNextSession] = useState<NextSession | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch session stats
+        const statsResponse = await api.get('scheduling/sessions/stats/');
+        setStats(statsResponse.data);
+
+        // Fetch sessions to get next upcoming one
+        const sessionsResponse = await api.get('scheduling/sessions/');
+        const sessions = sessionsResponse.data;
+
+        // Find the next upcoming session (closest scheduled_at in the future)
+        const now = new Date();
+        const upcomingSessions = sessions
+          .filter((s: any) =>
+            new Date(s.scheduled_at) > now &&
+            (s.status === 'pending' || s.status === 'confirmed')
+          )
+          .sort((a: any, b: any) =>
+            new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+          );
+
+        if (upcomingSessions.length > 0) {
+          const next = upcomingSessions[0];
+          setNextSession({
+            id: next.id,
+            scheduled_at: next.scheduled_at,
+            mentor_name: next.mentor?.full_name || next.mentor_name || 'Mentor',
+            session_type_name: next.session_type?.name || 'Session',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching session stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const formatNextSessionDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if it's today or tomorrow
+    if (date.toDateString() === now.toDateString()) {
+      return `Today ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+    }
+
+    // Otherwise show day name and time
+    return `${date.toLocaleDateString('en-US', { weekday: 'long' })} ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  };
+
+  const completedCount = stats?.completed_sessions ?? 0;
+  const thisMonthCount = stats?.this_month_sessions ?? 0;
+  const hasMonthlyGrowth = thisMonthCount > 0;
+
   return (
     <div className="grid grid-cols-2 gap-4 md:gap-6 text-green-400 font-arimo">
       {/* Completed Sessions */}
@@ -17,11 +101,13 @@ const StatsCards: FunctionComponent = () => {
         </div>
         <div className="w-full flex items-center justify-between gap-3 flex-1">
           <div className="text-2xl md:text-3xl text-white font-inter font-bold">
-            12
+            {loading ? '...' : completedCount}
           </div>
-          <div className="h-6 md:h-7 px-2 md:px-3 rounded-full bg-[#00C950]/10 border border-[#00C950]/20 flex items-center justify-center backdrop-blur-sm whitespace-nowrap flex-shrink-0">
-            <span className="text-xs md:text-sm leading-4 text-[#05DF72] font-medium">+2 <span className="hidden sm:inline">this month</span></span>
-          </div>
+          {hasMonthlyGrowth && (
+            <div className="h-6 md:h-7 px-2 md:px-3 rounded-full bg-[#00C950]/10 border border-[#00C950]/20 flex items-center justify-center backdrop-blur-sm whitespace-nowrap flex-shrink-0">
+              <span className="text-xs md:text-sm leading-4 text-[#05DF72] font-medium">+{thisMonthCount} <span className="hidden sm:inline">this month</span></span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -42,12 +128,27 @@ const StatsCards: FunctionComponent = () => {
           </div>
         </div>
         <div className="w-full flex flex-col gap-1 flex-1 justify-center">
-          <div className="text-base md:text-lg text-white font-inter font-semibold">
-            Monday 2:00 PM
-          </div>
-          <div className="text-[10px] md:text-xs text-gray-500">
-            with Marie Dupont
-          </div>
+          {loading ? (
+            <div className="text-base md:text-lg text-white/50 font-inter">Loading...</div>
+          ) : nextSession ? (
+            <>
+              <div className="text-base md:text-lg text-white font-inter font-semibold">
+                {formatNextSessionDate(nextSession.scheduled_at)}
+              </div>
+              <div className="text-[10px] md:text-xs text-gray-500">
+                with {nextSession.mentor_name}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-base md:text-lg text-white/70 font-inter">
+                No upcoming sessions
+              </div>
+              <div className="text-[10px] md:text-xs text-gray-500">
+                Book a session to get started
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

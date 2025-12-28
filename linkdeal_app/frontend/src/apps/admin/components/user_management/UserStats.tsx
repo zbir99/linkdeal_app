@@ -1,6 +1,60 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useState, useEffect } from 'react';
+import api from '@/services/api';
 
 const UserStats: FunctionComponent = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    mentors: 0,
+    mentees: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch approved mentors
+        const mentorsResponse = await api.get('/auth/admin/mentors/pending/?status=approved');
+        const mentorsCount = mentorsResponse.data.count ?? mentorsResponse.data.length ?? 0;
+
+        // Fetch rejected mentors
+        const rejectedMentorsResponse = await api.get('/auth/admin/mentors/pending/?status=rejected');
+        const rejectedMentorsCount = rejectedMentorsResponse.data.count ?? rejectedMentorsResponse.data.length ?? 0;
+
+        // Fetch active mentees
+        const menteesResponse = await api.get('/auth/admin/mentees/?status=active');
+        const menteesCount = menteesResponse.data.count ?? menteesResponse.data.length ?? 0;
+
+        // Fetch pending mentors
+        const pendingMentorsResponse = await api.get('/auth/admin/mentors/pending/?status=pending');
+        const pendingMentorsCount = pendingMentorsResponse.data.count ?? pendingMentorsResponse.data.length ?? 0;
+
+        // Fetch banned mentors (for calculating total)
+        const bannedMentorsResponse = await api.get('/auth/admin/mentors/pending/?status=banned');
+        const bannedMentorsCount = bannedMentorsResponse.data.count ?? bannedMentorsResponse.data.length ?? 0;
+
+        // Fetch banned mentees
+        const bannedMenteesResponse = await api.get('/auth/admin/mentees/?status=banned');
+        const bannedMenteesCount = bannedMenteesResponse.data.count ?? bannedMenteesResponse.data.length ?? 0;
+
+        const totalMentors = mentorsCount + bannedMentorsCount + rejectedMentorsCount + pendingMentorsCount;
+        const totalMentees = menteesCount + bannedMenteesCount;
+        const totalUsers = totalMentors + totalMentees;
+        const activeUsers = mentorsCount + menteesCount;
+
+        setStats({
+          totalUsers,
+          activeUsers,
+          mentors: totalMentors,
+          mentees: totalMentees
+        });
+      } catch (error) {
+        console.error('Failed to fetch user stats', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {/* Total Users */}
@@ -9,12 +63,9 @@ const UserStats: FunctionComponent = () => {
           <div className="text-white/80 text-xs sm:text-sm font-medium">
             Total Users
           </div>
-          <div className="h-5 sm:h-6 px-1.5 sm:px-2 rounded-lg bg-green-500/20 border-green-500/30 flex items-center justify-center text-green-400 text-[10px] sm:text-xs font-medium">
-            +12%
-          </div>
         </div>
         <div className="text-xl sm:text-3xl font-semibold text-white">
-          7
+          {stats.totalUsers}
         </div>
       </div>
 
@@ -24,12 +75,9 @@ const UserStats: FunctionComponent = () => {
           <div className="text-white/80 text-xs sm:text-sm font-medium">
             Active Users
           </div>
-          <div className="h-5 sm:h-6 px-1.5 sm:px-2 rounded-lg bg-green-500/20 border-green-500/30 flex items-center justify-center text-green-400 text-[10px] sm:text-xs font-medium">
-            +8%
-          </div>
         </div>
         <div className="text-xl sm:text-3xl font-semibold text-white">
-          5
+          {stats.activeUsers}
         </div>
       </div>
 
@@ -39,12 +87,9 @@ const UserStats: FunctionComponent = () => {
           <div className="text-white/80 text-xs sm:text-sm font-medium">
             Mentors
           </div>
-          <div className="h-5 sm:h-6 px-1.5 sm:px-2 rounded-lg bg-green-500/20 border-green-500/30 flex items-center justify-center text-green-400 text-[10px] sm:text-xs font-medium">
-            +5%
-          </div>
         </div>
         <div className="text-xl sm:text-3xl font-semibold text-white">
-          3
+          {stats.mentors}
         </div>
       </div>
 
@@ -54,12 +99,9 @@ const UserStats: FunctionComponent = () => {
           <div className="text-white/80 text-xs sm:text-sm font-medium">
             Mentees
           </div>
-          <div className="h-5 sm:h-6 px-1.5 sm:px-2 rounded-lg bg-green-500/20 border-green-500/30 flex items-center justify-center text-green-400 text-[10px] sm:text-xs font-medium">
-            +15%
-          </div>
         </div>
         <div className="text-xl sm:text-3xl font-semibold text-white">
-          3
+          {stats.mentees}
         </div>
       </div>
     </div>

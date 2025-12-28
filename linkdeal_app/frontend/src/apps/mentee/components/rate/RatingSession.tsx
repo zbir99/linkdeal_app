@@ -1,24 +1,35 @@
 import { FunctionComponent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { StarRating, FeedbackForm, SessionTags, ActionButtons } from '.';
+import { useNavigate, useParams } from 'react-router-dom';
+import { StarRating, FeedbackForm, ActionButtons } from '.';
+import api from '@/services/api';
 
 const RatingSession: FunctionComponent = () => {
   const navigate = useNavigate();
+  const { sessionId } = useParams<{ sessionId: string }>();
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const sessionTags = [
-    { id: 'helpful', label: 'Helpful' },
-    { id: 'clear', label: 'Clear' },
-    { id: 'motivating', label: 'Motivating' },
-    { id: 'not-useful', label: 'Not useful' }
-  ];
+  const handleSubmit = async () => {
+    if (!sessionId) {
+      console.error('No session ID found');
+      return;
+    }
 
-  const handleSubmit = () => {
-    console.log('Rating submitted:', { rating, feedback, selectedTags });
-    // Navigate to dashboard after submission
-    navigate('/mentee/dashboard');
+    setIsSubmitting(true);
+    try {
+      await api.post(`/scheduling/sessions/${sessionId}/rate/`, {
+        rating,
+        feedback
+      });
+      console.log('Rating submitted successfully');
+      navigate('/mentee/dashboard');
+    } catch (error) {
+      console.error('Failed to submit rating:', error);
+      // Optional: show error toast
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSkip = () => {
@@ -47,16 +58,10 @@ const RatingSession: FunctionComponent = () => {
 
           <FeedbackForm feedback={feedback} onFeedbackChange={setFeedback} />
 
-          <SessionTags
-            tags={sessionTags}
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-          />
-
           <ActionButtons
             onSubmit={handleSubmit}
             onSkip={handleSkip}
-            canSubmit={rating > 0}
+            canSubmit={rating > 0 && !isSubmitting}
           />
         </div>
       </div>

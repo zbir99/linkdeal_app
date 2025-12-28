@@ -14,9 +14,7 @@ const QuickActions: FunctionComponent = () => {
       case 'find-mentor':
         navigate('/mentee/find-mentor');
         break;
-      case 'contact-admin':
-        navigate('/mentee/tickets');
-        break;
+
       default:
         break;
     }
@@ -46,15 +44,7 @@ const QuickActions: FunctionComponent = () => {
         </svg>
       )
     },
-    {
-      id: 'contact-admin',
-      title: 'Contact Admin',
-      icon: (
-        <svg width="30" height="28" viewBox="0 0 30 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M28.0006 19.9997C28.0006 20.7069 27.7197 21.3852 27.2196 21.8853C26.7195 22.3854 26.0412 22.6663 25.334 22.6663H7.77132C7.06413 22.6665 6.38596 22.9475 5.88598 23.4477L2.94998 26.3837C2.81759 26.516 2.64892 26.6062 2.4653 26.6427C2.28168 26.6792 2.09136 26.6605 1.91839 26.5888C1.74543 26.5172 1.59759 26.3959 1.49357 26.2402C1.38954 26.0846 1.33401 25.9016 1.33398 25.7143V3.99967C1.33398 3.29243 1.61494 2.61415 2.11503 2.11406C2.61513 1.61396 3.29341 1.33301 4.00065 1.33301H25.334C26.0412 1.33301 26.7195 1.61396 27.2196 2.11406C27.7197 2.61415 28.0006 3.29243 28.0006 3.99967V19.9997Z" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
-    }
+
   ];
 
   return (

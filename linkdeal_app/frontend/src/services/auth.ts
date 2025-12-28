@@ -1276,6 +1276,10 @@ class AuthService {
         for (const [key, value] of Object.entries(profileData)) {
           if (value instanceof File) {
             formData.append(key, value)
+          } else if (Array.isArray(value)) {
+            // Handle arrays: append each item with the same key
+            // This is the standard way to send arrays via FormData
+            value.forEach(item => formData.append(key, String(item)))
           } else if (value !== null && value !== undefined) {
             formData.append(key, String(value))
           }

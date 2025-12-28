@@ -83,7 +83,12 @@ class MeView(APIView):
             except (AppUser.DoesNotExist, MentorProfile.DoesNotExist):
                 response_data['skills'] = []
 
-        return Response(response_data)
+        response = Response(response_data)
+        # Prevent browser caching of user data
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 
 class MenteeProfileMeView(APIView):
@@ -108,17 +113,94 @@ class MenteeProfileMeView(APIView):
             if mentee_profile.profile_picture:
                 profile_picture_url = request.build_absolute_uri(mentee_profile.profile_picture.url)
             
-            return Response({
+            response = Response({
                 "full_name": mentee_profile.full_name,
                 "email": mentee_profile.email,
                 "profile_picture": profile_picture_url,
                 "social_picture_url": mentee_profile.social_picture_url,
                 "country": mentee_profile.country,
                 "field_of_study": mentee_profile.field_of_study,
-                "language": mentee_profile.language,
-                "interests": mentee_profile.interests,
+                "languages": mentee_profile.languages,
+                "current_role": mentee_profile.current_role,
+                "skills": mentee_profile.skills,
                 "user_type": mentee_profile.user_type,
                 "session_frequency": mentee_profile.session_frequency,
+            })
+            # Prevent browser caching of profile data
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            return response
+        except AppUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except MenteeProfile.DoesNotExist:
+            return Response(
+                {"error": "Mentee profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def patch(self, request):
+        """
+        PATCH /auth/mentee/profile/me/
+        Updates the authenticated mentee's profile.
+        Supports: full_name, bio, language, current_role, profile_picture
+        """
+        user = request.user
+        
+        try:
+            app_user = AppUser.objects.get(auth0_id=user.auth0_id)
+            mentee_profile = MenteeProfile.objects.get(user=app_user)
+            
+            # Updateable fields
+            if 'full_name' in request.data:
+                mentee_profile.full_name = request.data['full_name']
+            if 'bio' in request.data:
+                # Bio is not a model field, but we can add it or skip
+                pass  # Skip for now - add bio field to model if needed
+            if 'languages' in request.data:
+                mentee_profile.languages = request.data['languages']
+            if 'current_role' in request.data:
+                mentee_profile.current_role = request.data['current_role']
+            if 'skills' in request.data:
+                mentee_profile.skills = request.data['skills']
+            if 'country' in request.data:
+                mentee_profile.country = request.data['country']
+            if 'field_of_study' in request.data:
+                mentee_profile.field_of_study = request.data['field_of_study']
+            
+            # Handle profile picture upload
+            if 'profile_picture' in request.FILES:
+                # Delete old profile picture if exists
+                if mentee_profile.profile_picture:
+                    mentee_profile.profile_picture.delete(save=False)
+                mentee_profile.profile_picture = request.FILES['profile_picture']
+            
+            mentee_profile.save()
+            
+            # Build response
+            profile_picture_url = None
+            if mentee_profile.profile_picture:
+                profile_picture_url = request.build_absolute_uri(mentee_profile.profile_picture.url)
+            
+            return Response({
+                "success": True,
+                "message": "Profile updated successfully",
+                "profile": {
+                    "full_name": mentee_profile.full_name,
+                    "email": mentee_profile.email,
+                    "profile_picture": profile_picture_url,
+                    "social_picture_url": mentee_profile.social_picture_url,
+                    "country": mentee_profile.country,
+                    "field_of_study": mentee_profile.field_of_study,
+                    "languages": mentee_profile.languages,
+                    "current_role": mentee_profile.current_role,
+                    "skills": mentee_profile.skills,
+                    "user_type": mentee_profile.user_type,
+                    "session_frequency": mentee_profile.session_frequency,
+                }
             })
         except AppUser.DoesNotExist:
             return Response(
@@ -129,6 +211,159 @@ class MenteeProfileMeView(APIView):
             return Response(
                 {"error": "Mentee profile not found"},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class MentorProfileMeView(APIView):
+    """
+    GET /auth/mentors/profile/me/
+    Returns the authenticated mentor's profile data including profile picture.
+    """
+    permission_classes = [IsAuthenticatedAuth0]
+
+    def get(self, request):
+        user = request.user
+        
+        try:
+            # Get AppUser from auth0_id
+            app_user = AppUser.objects.get(auth0_id=user.auth0_id)
+            
+            # Get mentor profile
+            mentor_profile = MentorProfile.objects.get(user=app_user)
+            
+            # Build profile picture URL
+            profile_picture_url = None
+            if mentor_profile.profile_picture:
+                profile_picture_url = request.build_absolute_uri(mentor_profile.profile_picture.url)
+            
+            # Build CV URL
+            cv_url = None
+            if mentor_profile.cv:
+                cv_url = request.build_absolute_uri(mentor_profile.cv.url)
+            
+            response = Response({
+                "full_name": mentor_profile.full_name,
+                "email": mentor_profile.email,
+                "profile_picture": profile_picture_url,
+                "social_picture_url": mentor_profile.social_picture_url,
+                "professional_title": mentor_profile.professional_title,
+                "location": mentor_profile.location,
+                "country": mentor_profile.country,
+                "languages": mentor_profile.languages,
+                "skills": mentor_profile.skills,
+                "bio": mentor_profile.bio,
+                "linkedin_url": mentor_profile.linkedin_url,
+                "cv_url": cv_url,
+                "status": mentor_profile.status,
+                "session_rate": str(mentor_profile.session_rate),
+            })
+            # Prevent browser caching of profile data
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            return response
+        except AppUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except MentorProfile.DoesNotExist:
+            return Response(
+                {"error": "Mentor profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def patch(self, request):
+        """Update mentor profile fields."""
+        user = request.user
+        
+        try:
+            app_user = AppUser.objects.get(auth0_id=user.auth0_id)
+            mentor_profile = MentorProfile.objects.get(user=app_user)
+            
+            # Update fields if provided
+            if 'full_name' in request.data:
+                mentor_profile.full_name = request.data['full_name']
+            if 'professional_title' in request.data:
+                mentor_profile.professional_title = request.data['professional_title']
+            if 'location' in request.data:
+                mentor_profile.location = request.data['location']
+            if 'linkedin_url' in request.data:
+                mentor_profile.linkedin_url = request.data['linkedin_url']
+            if 'bio' in request.data:
+                mentor_profile.bio = request.data['bio']
+            if 'languages' in request.data:
+                # Handle languages - can be list or comma-separated string
+                languages_data = request.data.getlist('languages') if hasattr(request.data, 'getlist') else request.data.get('languages', [])
+                if isinstance(languages_data, str):
+                    languages_data = [l.strip() for l in languages_data.split(',') if l.strip()]
+                mentor_profile.languages = languages_data
+            if 'skills' in request.data:
+                # Handle skills - can be list or comma-separated string
+                skills_data = request.data.getlist('skills') if hasattr(request.data, 'getlist') else request.data.get('skills', [])
+                if isinstance(skills_data, str):
+                    skills_data = [s.strip() for s in skills_data.split(',') if s.strip()]
+                mentor_profile.skills = skills_data
+            
+            # Handle profile picture upload
+            if 'profile_picture' in request.FILES:
+                mentor_profile.profile_picture = request.FILES['profile_picture']
+            
+            # Handle CV upload
+            if 'cv' in request.FILES:
+                mentor_profile.cv = request.FILES['cv']
+            
+            # Handle session rate update
+            if 'session_rate' in request.data:
+                from decimal import Decimal, InvalidOperation
+                try:
+                    rate_value = request.data['session_rate']
+                    mentor_profile.session_rate = Decimal(str(rate_value))
+                except (InvalidOperation, ValueError):
+                    return Response(
+                        {"error": "Invalid session rate value"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            mentor_profile.save()
+            
+            # Build profile picture URL for response
+            profile_picture_url = None
+            if mentor_profile.profile_picture:
+                profile_picture_url = request.build_absolute_uri(mentor_profile.profile_picture.url)
+            
+            return Response({
+                "success": True,
+                "message": "Profile updated successfully",
+                "full_name": mentor_profile.full_name,
+                "email": mentor_profile.email,
+                "profile_picture": profile_picture_url,
+                "social_picture_url": mentor_profile.social_picture_url,
+                "professional_title": mentor_profile.professional_title,
+                "location": mentor_profile.location,
+                "country": mentor_profile.country,
+                "languages": mentor_profile.languages,
+                "skills": mentor_profile.skills,
+                "bio": mentor_profile.bio,
+                "linkedin_url": mentor_profile.linkedin_url,
+                "status": mentor_profile.status,
+                "session_rate": str(mentor_profile.session_rate),
+            })
+        except AppUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except MentorProfile.DoesNotExist:
+            return Response(
+                {"error": "Mentor profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Failed to update mentor profile: {e}", exc_info=True)
+            return Response(
+                {"error": {"type": "ValidationError", "message": str(e)}},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
 

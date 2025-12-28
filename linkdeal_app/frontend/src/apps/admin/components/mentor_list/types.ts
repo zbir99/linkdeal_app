@@ -4,8 +4,8 @@ export interface Mentor {
   email: string;
   initials: string;
   domain: string;
-  yearsExperience: number;
   submittedDate: string;
-  certifications: string[];
+  profilePictureUrl?: string | null;
+  socialPictureUrl?: string | null;
 }
 

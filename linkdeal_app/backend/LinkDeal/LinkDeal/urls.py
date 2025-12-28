@@ -22,6 +22,10 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('accounts.urls')),
+    path('scheduling/', include('scheduling.urls')),
+    path('mentoring/', include('mentoring.urls')),
+    path('ai/', include('ai_chat.urls')),  # AI Chat endpoints
+    path('api/', include('core.urls')),  # Core platform settings
 ]
 
 if settings.DEBUG:

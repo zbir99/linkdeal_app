@@ -273,6 +273,13 @@ class Auth0JWTAuthentication(BaseAuthentication):
                 # ----------------------------------------------------
                 # Enforce status/ban using local DB (identity-agnostic)
                 # ----------------------------------------------------
+                # If Auth0User has no role but DB does, use DB role for this request context
+                # This fixes the issue where a fresh login token might not have the role claim yet
+                if not auth0_user.role and app_user.role:
+                    auth0_user.role = app_user.role
+                    auth0_user.roles = [app_user.role]
+                    logger.info(f"Backfilled Auth0User role from DB: {app_user.role}")
+
                 # Safety check: ensure app_user.role is set after validation/sync
                 if not app_user.role:
                     logger.error(

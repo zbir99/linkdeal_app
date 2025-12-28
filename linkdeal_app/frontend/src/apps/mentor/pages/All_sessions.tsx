@@ -8,7 +8,7 @@ const All_sessions: FunctionComponent = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/mentor/dashboard');
+    navigate(-1);
   };
 
   return (
@@ -20,7 +20,7 @@ const All_sessions: FunctionComponent = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <SessionsHeader onBack={handleBack} />
-        
+
         <div className="space-y-6">
           <SessionsStats />
           <SessionsList />
@@ -31,4 +31,3 @@ const All_sessions: FunctionComponent = () => {
 };
 
 export default All_sessions;
-

@@ -219,7 +219,7 @@ class UnbanMentorView(APIView):
 
     Only super_admins can unban a mentor. Restores status to approved.
     """
-    permission_classes = [IsAuthenticatedAuth0, IsSuperAdmin]
+    permission_classes = [IsAuthenticatedAuth0, IsAdmin]
 
     @transaction.atomic
     def post(self, request, pk):
@@ -388,7 +388,7 @@ class UnbanMenteeView(APIView):
 
     Only super_admins can unban a mentee. Restores status to active.
     """
-    permission_classes = [IsAuthenticatedAuth0, IsSuperAdmin]
+    permission_classes = [IsAuthenticatedAuth0, IsAdmin]
 
     @transaction.atomic
     def post(self, request, pk):
@@ -470,10 +470,10 @@ class DeleteUserView(APIView):
     DELETE /auth/admin/users/<uuid:pk>/
     
     Delete an AppUser and their Auth0 account.
-    Only accessible to super_admin.
+    Accessible to admin (changed from super_admin only).
     This will cascade delete related profiles (MentorProfile, MenteeProfile).
     """
-    permission_classes = [IsAuthenticatedAuth0, IsSuperAdmin]
+    permission_classes = [IsAuthenticatedAuth0, IsAdmin]
 
     @transaction.atomic
     def delete(self, request, pk):
@@ -531,3 +531,119 @@ class DeleteUserView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
+# ---------- NEW: Edit mentor profile ----------
+class EditMentorView(APIView):
+    """
+    PATCH /auth/admin/mentors/<uuid:pk>/edit/
+
+    Admin can edit allowed mentor profile fields.
+    Editable: full_name, professional_title, location, bio, languages, country, skills
+    """
+    permission_classes = [IsAuthenticatedAuth0, IsAdmin]
+
+    EDITABLE_FIELDS = [
+        "full_name",
+        "professional_title",
+        "location",
+        "bio",
+        "languages",
+        "country",
+        "skills",
+    ]
+
+    @transaction.atomic
+    def patch(self, request, pk):
+        mentor = get_object_or_404(MentorProfile, pk=pk)
+
+        updated_fields = []
+        for field in self.EDITABLE_FIELDS:
+            if field in request.data:
+                value = request.data[field]
+                setattr(mentor, field, value)
+                updated_fields.append(field)
+
+        if not updated_fields:
+            return Response(
+                {
+                    "success": False,
+                    "message": "No valid fields provided for update.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        mentor.save(update_fields=updated_fields)
+        logger.info(
+            "Admin %s edited mentor %s. Fields: %s",
+            request.user.auth0_id,
+            pk,
+            updated_fields,
+        )
+
+        serializer = AdminMentorDetailSerializer(mentor, context={"request": request})
+        return Response(
+            {
+                "success": True,
+                "message": "Mentor profile updated successfully.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ---------- NEW: Edit mentee profile ----------
+class EditMenteeView(APIView):
+    """
+    PATCH /auth/admin/mentees/<uuid:pk>/edit/
+
+    Admin can edit allowed mentee profile fields.
+    Editable: full_name, country, languages, current_role, skills, field_of_study
+    """
+    permission_classes = [IsAuthenticatedAuth0, IsAdmin]
+
+    EDITABLE_FIELDS = [
+        "full_name",
+        "country",
+        "languages",
+        "current_role",
+        "skills",
+        "field_of_study",
+    ]
+
+    @transaction.atomic
+    def patch(self, request, pk):
+        mentee = get_object_or_404(MenteeProfile, pk=pk)
+
+        updated_fields = []
+        for field in self.EDITABLE_FIELDS:
+            if field in request.data:
+                value = request.data[field]
+                setattr(mentee, field, value)
+                updated_fields.append(field)
+
+        if not updated_fields:
+            return Response(
+                {
+                    "success": False,
+                    "message": "No valid fields provided for update.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        mentee.save(update_fields=updated_fields)
+        logger.info(
+            "Admin %s edited mentee %s. Fields: %s",
+            request.user.auth0_id,
+            pk,
+            updated_fields,
+        )
+
+        serializer = AdminMenteeSerializer(mentee, context={"request": request})
+        return Response(
+            {
+                "success": True,
+                "message": "Mentee profile updated successfully.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )

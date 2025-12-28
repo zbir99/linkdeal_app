@@ -8,6 +8,7 @@ from accounts.views import (
     SocialMentorRegisterView,
     MeView,
     MenteeProfileMeView,
+    MentorProfileMeView,
     LogoutView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
@@ -28,6 +29,8 @@ from accounts.admin_views import (
     UnbanMenteeView,
     AdminInviteView,
     DeleteUserView,
+    EditMentorView,
+    EditMenteeView,
 )
 
 from accounts.linking_views import (
@@ -62,6 +65,7 @@ urlpatterns = [
     
     # Mentee profile endpoint
     path("mentee/profile/me/", MenteeProfileMeView.as_view(), name="mentee-profile-me"),
+    path("mentors/profile/me/", MentorProfileMeView.as_view(), name="mentor-profile-me"),
 
     # Admin mentor review
     path("admin/mentors/pending/", PendingMentorsView.as_view(), name="pending-mentors"),
@@ -70,16 +74,18 @@ urlpatterns = [
     path("admin/mentors/<uuid:pk>/reject/", RejectMentorView.as_view(), name="reject-mentor"),
     path("admin/mentors/<uuid:pk>/ban/", BanMentorView.as_view(), name="ban-mentor"),
     path("admin/mentors/<uuid:pk>/unban/", UnbanMentorView.as_view(), name="unban-mentor"),
+    path("admin/mentors/<uuid:pk>/edit/", EditMentorView.as_view(), name="edit-mentor"),
 
     # Admin mentee management
     path("admin/mentees/", MenteesListAdminView.as_view(), name="admin-mentees-list"),
     path("admin/mentees/<uuid:pk>/", MenteeDetailAdminView.as_view(), name="admin-mentee-detail"),
     path("admin/mentees/<uuid:pk>/ban/", BanMenteeView.as_view(), name="ban-mentee"),
     path("admin/mentees/<uuid:pk>/unban/", UnbanMenteeView.as_view(), name="unban-mentee"),
+    path("admin/mentees/<uuid:pk>/edit/", EditMenteeView.as_view(), name="edit-mentee"),
 
     # Super admin - admin invitation
     path("admin/admins/", AdminInviteView.as_view(), name="admin-invite"),
     
-    # Super admin - user deletion
+    # Admin - user deletion (changed from super_admin only)
     path("admin/users/<uuid:pk>/", DeleteUserView.as_view(), name="delete-user"),
 ]

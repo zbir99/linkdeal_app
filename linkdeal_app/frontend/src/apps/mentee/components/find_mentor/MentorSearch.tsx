@@ -7,11 +7,11 @@ interface MentorSearchProps {
   onCategoryChange: (category: string) => void;
 }
 
-const MentorSearch: FunctionComponent<MentorSearchProps> = ({ 
-  searchTerm, 
-  selectedCategory, 
-  onSearchChange, 
-  onCategoryChange 
+const MentorSearch: FunctionComponent<MentorSearchProps> = ({
+  searchTerm,
+  selectedCategory,
+  onSearchChange,
+  onCategoryChange
 }) => {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,8 @@ const MentorSearch: FunctionComponent<MentorSearchProps> = ({
     'Data Science',
     'DevOps',
     'Product Management',
-    'Marketing'
+    'Marketing',
+    'Other'
   ];
 
   // Close dropdown when clicking outside
@@ -57,8 +58,8 @@ const MentorSearch: FunctionComponent<MentorSearchProps> = ({
         <div className="flex-1 relative">
           <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="8" stroke="#9CA3AF" strokeWidth="2"/>
-              <path d="M21 21L16.65 16.65" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="11" cy="11" r="8" stroke="#9CA3AF" strokeWidth="2" />
+              <path d="M21 21L16.65 16.65" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
           <input
@@ -72,7 +73,7 @@ const MentorSearch: FunctionComponent<MentorSearchProps> = ({
 
         {/* Category Dropdown */}
         <div className="relative w-full lg:w-80" ref={categoryDropdownRef}>
-          <div 
+          <div
             className="flex h-12 items-center justify-between px-3 py-0 relative w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
             onClick={handleCategoryDropdownClick}
           >

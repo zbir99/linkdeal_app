@@ -11,7 +11,7 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
   const [dayDropdownOpen, setDayDropdownOpen] = useState(false);
   const [startTimeDropdownOpen, setStartTimeDropdownOpen] = useState(false);
   const [endTimeDropdownOpen, setEndTimeDropdownOpen] = useState(false);
-  
+
   const dayDropdownRef = useRef<HTMLDivElement>(null);
   const startTimeDropdownRef = useRef<HTMLDivElement>(null);
   const endTimeDropdownRef = useRef<HTMLDivElement>(null);
@@ -83,18 +83,24 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const times = [
-    '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
-    '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', 
+    '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
+    '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
     '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'
   ];
+
+  // Filter end times to only show times after the selected start time
+  const getAvailableEndTimes = () => {
+    if (!startTime) return times;
+    return times.filter(time => time > startTime);
+  };
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
       <h2 className="text-xl font-semibold text-white mb-6">Add Time Slot</h2>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="relative w-full" ref={dayDropdownRef}>
-          <div 
+          <div
             className="flex h-9 items-center justify-between px-3 py-0 w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
             onClick={handleDayDropdownClick}
           >
@@ -128,9 +134,9 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
             </div>
           )}
         </div>
-        
+
         <div className="relative w-full" ref={startTimeDropdownRef}>
-          <div 
+          <div
             className="flex h-9 items-center justify-between px-3 py-0 w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
             onClick={handleStartTimeDropdownClick}
           >
@@ -164,9 +170,9 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
             </div>
           )}
         </div>
-        
+
         <div className="relative w-full" ref={endTimeDropdownRef}>
-          <div 
+          <div
             className="flex h-9 items-center justify-between px-3 py-0 w-full bg-[#ffffff0d] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] cursor-pointer hover:bg-[#ffffff1a] hover:border-purple-400/50 transition-all duration-300 group"
             onClick={handleEndTimeDropdownClick}
           >
@@ -184,7 +190,7 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
           {endTimeDropdownOpen && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a2e] rounded-xl border-[0.8px] border-solid border-[#fffefe1a] shadow-xl z-10 max-h-48 overflow-y-auto">
               <div className="py-1">
-                {times.map((time) => (
+                {getAvailableEndTimes().map((time) => (
                   <div
                     key={time}
                     className="px-3 py-2 text-sm text-[#a0a0a0] hover:bg-purple-600/30 hover:text-purple-200 cursor-pointer transition-colors duration-200"
@@ -200,15 +206,15 @@ export const AddTimeSlot: FunctionComponent<AddTimeSlotProps> = ({ onAddSlot }) 
             </div>
           )}
         </div>
-        
+
         <button
           onClick={handleAddSlot}
           disabled={!selectedDay || !startTime || !endTime}
           className="px-4 py-3 rounded-lg bg-[#7008E7] text-white font-medium shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 hover:bg-[#8B5CF6] hover:shadow-xl transition-all duration-300 transform flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-[#7008E7]"
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4.16675 10H15.8334" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M10 4.16602V15.8327" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M4.16675 10H15.8334" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 4.16602V15.8327" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Add Slot
         </button>

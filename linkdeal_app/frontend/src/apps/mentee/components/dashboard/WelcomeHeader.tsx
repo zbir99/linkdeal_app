@@ -14,6 +14,7 @@ const WelcomeHeader: FunctionComponent = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState<MenteeProfile | null>(null);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
+  const [imageLoadError, setImageLoadError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,11 +55,6 @@ const WelcomeHeader: FunctionComponent = () => {
 
   const handleNotificationsClick = () => {
     navigate('/mentee/notifications');
-  };
-
-  const handleContactClick = () => {
-    setIsMenuOpen(false);
-    navigate('/mentee/contact-us');
   };
 
   const toggleMenu = () => {
@@ -117,30 +113,28 @@ const WelcomeHeader: FunctionComponent = () => {
             onClick={toggleMenu}
             className="relative hover:scale-105 transition-transform duration-200 cursor-pointer"
           >
-            {profilePictureUrl ? (
+            {profilePictureUrl && !imageLoadError ? (
               <img
                 src={profilePictureUrl}
                 alt={`${displayName}'s profile`}
                 className="w-11 h-11 min-w-[44px] min-h-[44px] max-w-[44px] max-h-[44px] rounded-full object-cover border-2 border-purple-500 flex-shrink-0"
-                onError={(e) => {
-                  // Fallback to default avatar on error
-                  e.currentTarget.style.display = 'none';
-                  const svgElement = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (svgElement) svgElement.classList.remove('hidden');
+                onError={() => {
+                  console.warn('Profile picture failed to load:', profilePictureUrl);
+                  setImageLoadError(true);
                 }}
               />
-            ) : null}
-            <svg
-              width="44"
-              height="44"
-              viewBox="0 0 44 44"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={profilePictureUrl ? 'hidden' : ''}
-            >
-              <path d="M0 22C0 9.84974 9.84974 0 22 0C34.1503 0 44 9.84974 44 22C44 34.1503 34.1503 44 22 44C9.84974 44 0 34.1503 0 22Z" fill="#7008E7" />
-              <path d="M15.8516 28.1318C14.9193 28.1318 14.1771 27.8923 13.625 27.4131C13.0729 26.9287 12.7083 26.2048 12.5312 25.2412L13.9922 24.999C14.0859 25.6032 14.2969 26.0745 14.625 26.4131C14.9531 26.7516 15.3646 26.9209 15.8594 26.9209C16.401 26.9209 16.8281 26.736 17.1406 26.3662C17.4531 25.9912 17.6094 25.4443 17.6094 24.7256V18.1865H15.4922V16.9678H19.0938V24.6943C19.0938 25.762 18.8047 26.6032 18.2266 27.2178C17.6484 27.8271 16.8568 28.1318 15.8516 28.1318ZM31.0703 22.3584C31.0703 23.5199 30.8438 24.5199 30.3906 25.3584C29.9427 26.1969 29.3151 26.8428 28.5078 27.2959C27.7057 27.749 26.7734 27.9756 25.7109 27.9756H21.5938V16.9678H25.2344C27.099 16.9678 28.5365 17.4365 29.5469 18.374C30.5625 19.3063 31.0703 20.6344 31.0703 22.3584ZM29.5703 22.3584C29.5703 20.9938 29.1953 19.9548 28.4453 19.2412C27.7005 18.5225 26.6198 18.1631 25.2031 18.1631H23.0859V26.7803H25.5391C26.3568 26.7803 27.0651 26.6006 27.6641 26.2412C28.2682 25.8818 28.737 25.3714 29.0703 24.71C29.4036 24.0485 29.5703 23.2646 29.5703 22.3584Z" fill="white" />
-            </svg>
+            ) : (
+              <svg
+                width="44"
+                height="44"
+                viewBox="0 0 44 44"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M0 22C0 9.84974 9.84974 0 22 0C34.1503 0 44 9.84974 44 22C44 34.1503 34.1503 44 22 44C9.84974 44 0 34.1503 0 22Z" fill="#7008E7" />
+                <path d="M15.8516 28.1318C14.9193 28.1318 14.1771 27.8923 13.625 27.4131C13.0729 26.9287 12.7083 26.2048 12.5312 25.2412L13.9922 24.999C14.0859 25.6032 14.2969 26.0745 14.625 26.4131C14.9531 26.7516 15.3646 26.9209 15.8594 26.9209C16.401 26.9209 16.8281 26.736 17.1406 26.3662C17.4531 25.9912 17.6094 25.4443 17.6094 24.7256V18.1865H15.4922V16.9678H19.0938V24.6943C19.0938 25.762 18.8047 26.6032 18.2266 27.2178C17.6484 27.8271 16.8568 28.1318 15.8516 28.1318ZM31.0703 22.3584C31.0703 23.5199 30.8438 24.5199 30.3906 25.3584C29.9427 26.1969 29.3151 26.8428 28.5078 27.2959C27.7057 27.749 26.7734 27.9756 25.7109 27.9756H21.5938V16.9678H25.2344C27.099 16.9678 28.5365 17.4365 29.5469 18.374C30.5625 19.3063 31.0703 20.6344 31.0703 22.3584ZM29.5703 22.3584C29.5703 20.9938 29.1953 19.9548 28.4453 19.2412C27.7005 18.5225 26.6198 18.1631 25.2031 18.1631H23.0859V26.7803H25.5391C26.3568 26.7803 27.0651 26.6006 27.6641 26.2412C28.2682 25.8818 28.737 25.3714 29.0703 24.71C29.4036 24.0485 29.5703 23.2646 29.5703 22.3584Z" fill="white" />
+              </svg>
+            )}
           </button>
 
           {isMenuOpen && (
@@ -154,13 +148,7 @@ const WelcomeHeader: FunctionComponent = () => {
               >
                 Profile
               </button>
-              <div className="h-px bg-white/10" />
-              <button
-                onClick={handleContactClick}
-                className="w-full px-4 py-3 text-left text-sm text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
-              >
-                Contact Us
-              </button>
+
               <div className="h-px bg-white/10" />
               <button
                 onClick={handleLogout}
