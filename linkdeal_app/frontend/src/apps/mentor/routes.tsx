@@ -12,6 +12,8 @@ import Pricing from './pages/Pricing';
 import Support_tickets from './pages/Support_tickets';
 import { Vd } from './pages/Vd';
 import Tickets from './pages/Tickets';
+import ContactUs from './pages/ContactUs';
+import Wallet from './pages/Wallet';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Mentor App Routes
@@ -77,5 +79,13 @@ export const mentorRoutes: RouteObject[] = [
   {
     path: '/mentor/tickets',
     element: <ProtectedRoute><Tickets /></ProtectedRoute>
+  },
+  {
+    path: '/mentor/contact-us',
+    element: <ProtectedRoute><ContactUs /></ProtectedRoute>
+  },
+  {
+    path: '/mentor/wallet',
+    element: <ProtectedRoute><Wallet /></ProtectedRoute>
   }
 ];

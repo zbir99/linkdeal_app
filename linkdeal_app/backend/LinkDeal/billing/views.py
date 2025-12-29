@@ -95,7 +95,9 @@ class ConfirmPaymentView(APIView):
         # 2. Mark Payment Completed
         payment.mark_completed()
         
-        logger.info(f"Payment confirmed: {payment.id}. Funds added to Platform Wallet.")
+        # Note: We do NOT credit mentor wallet here. 
+        # Funds are held in Platform Wallet until session is completed.
+        # This is handled by billing.signals.handle_session_completion
         
         # 3. Send Notifications
         try:

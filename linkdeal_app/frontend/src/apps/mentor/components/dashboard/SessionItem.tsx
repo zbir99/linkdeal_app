@@ -11,8 +11,21 @@ interface SessionItemProps {
   time: string;
 }
 
+// Helper to get full image URL
+const getImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  // If it's already an absolute URL (http/https), use as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Otherwise, prepend the API base URL
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+  return `${apiUrl}${url}`;
+};
+
 const SessionItem: FunctionComponent<SessionItemProps> = ({ id, initials, name, profileImage, topic, date, time }) => {
   const navigate = useNavigate();
+  const imageUrl = getImageUrl(profileImage);
 
   const handleJoinSession = () => {
     navigate(`/mentor/vd/${id}`);
@@ -21,11 +34,17 @@ const SessionItem: FunctionComponent<SessionItemProps> = ({ id, initials, name, 
   return (
     <div className="w-full rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-3 md:p-5 flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between hover:bg-white/10 hover:border-white/20 hover:shadow-xl hover:shadow-purple-500/10 hover:scale-[1.02] transition-all duration-300 ease-out">
       <div className="flex items-center gap-3 md:gap-4">
-        {profileImage ? (
+        {imageUrl ? (
           <img
-            src={profileImage}
+            src={imageUrl}
             alt={name}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
             className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0 rounded-full object-cover"
+            onError={(e) => {
+              // On error, hide the image and show initials instead
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
         ) : (
           <div className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0 rounded-full flex items-center justify-center text-sm md:text-base font-semibold text-white" style={{ backgroundColor: '#7008E7' }}>

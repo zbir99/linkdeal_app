@@ -15,6 +15,10 @@ interface Session {
   session_type_name?: string;
   status: string;
   duration_minutes: number;
+  price?: string;
+  currency?: string;
+  rating?: number;
+  feedback?: string;
 }
 
 const SessionHistory: FunctionComponent = () => {
@@ -189,66 +193,107 @@ const SessionHistory: FunctionComponent = () => {
             </div>
           ) : (
             // Sessions list
-            <div className="space-y-4">
+            <div className="space-y-6">
               {sessions.map((session) => {
                 const mentorName = session.mentor?.full_name || session.mentor_name || 'Mentor';
                 const topic = session.topic || session.session_type_name || 'Mentoring Session';
+                const rating = session.rating || 0;
 
                 return (
                   <div
                     key={session.id}
-                    className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-6 hover:bg-white/10 hover:border-white/20 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300"
+                    className="rounded-2xl bg-[#1E1E2E] border border-white/5 p-6 hover:border-white/10 transition-colors duration-300"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      {/* Mentor Avatar */}
-                      <div className="flex items-center gap-4 flex-1">
-                        {session.mentor?.profile_picture_url ? (
-                          <img
-                            src={session.mentor.profile_picture_url}
-                            alt={mentorName}
-                            className="w-14 h-14 rounded-full object-cover border-2 border-white/10"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#7008E7] to-[#9B4DFF] flex items-center justify-center text-white font-bold text-lg border-2 border-white/10">
-                            {getInitials(mentorName)}
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-6">
+                      {/* Left Side: Avatar + Details */}
+                      <div className="flex gap-4">
+                        {/* Avatar */}
+                        <div className="flex-shrink-0">
+                          {session.mentor?.profile_picture_url ? (
+                            <img
+                              src={session.mentor.profile_picture_url}
+                              alt={mentorName}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-[#7008E7] flex items-center justify-center text-white font-bold text-sm">
+                              {getInitials(mentorName)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="space-y-1">
+                          <h3 className="text-white font-semibold text-lg leading-tight">{mentorName}</h3>
+                          <p className="text-[#A684FF] text-sm font-medium">{topic}</p>
+
+                          {/* Badges Row */}
+                          <div className="flex flex-wrap items-center gap-4 text-gray-400 text-sm mt-2">
+                            <div className="flex items-center gap-2">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
+                                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" />
+                                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
+                              </svg>
+                              <span>{formatDate(session.scheduled_at)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <span>{formatTime(session.scheduled_at, session.duration_minutes)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <span>{formatDuration(session.duration_minutes)}</span>
+                            </div>
                           </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-white font-semibold text-lg truncate">{mentorName}</h3>
-                          <p className="text-[#A684FF] text-sm truncate">{topic}</p>
                         </div>
                       </div>
 
-                      {/* Session Details */}
-                      <div className="flex flex-wrap items-center gap-3">
-                        {/* Date Badge */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" stroke="#9CA3AF" strokeWidth="2" />
-                            <line x1="8" y1="2" x2="8" y2="6" stroke="#9CA3AF" strokeWidth="2" />
-                            <line x1="3" y1="10" x2="21" y2="10" stroke="#9CA3AF" strokeWidth="2" />
-                          </svg>
-                          <span className="text-white text-sm">{formatDate(session.scheduled_at)}</span>
-                        </div>
-
-                        {/* Time Badge */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="10" stroke="#9CA3AF" strokeWidth="2" />
-                            <path d="M12 6v6l4 2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <span className="text-white text-sm">{formatTime(session.scheduled_at, session.duration_minutes)}</span>
-                        </div>
-
-                        {/* Duration Badge */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#05DF72]/10 border border-[#05DF72]/20">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 6L9 17l-5-5" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <span className="text-[#05DF72] text-sm font-medium">{formatDuration(session.duration_minutes)}</span>
+                      {/* Right Side: Price & Rating */}
+                      <div className="flex flex-row md:flex-col justify-between md:items-end gap-2 md:text-right min-w-[120px]">
+                        <div>
+                          <div className="text-[#05DF72] text-xl font-bold font-mono tracking-wide">
+                            ${parseFloat(session.price || '0').toLocaleString()}
+                          </div>
+                          <div className="flex items-center gap-0.5 mt-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill={star <= rating ? "#FFD700" : "none"}
+                                stroke={star <= rating ? "#FFD700" : "#4B5563"}
+                                strokeWidth="2"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <div className="text-gray-500 text-xs mt-1 font-medium">Completed</div>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Feedback Section */}
+                    <div className="bg-[#262638] rounded-xl p-5 border border-white/5">
+                      <div className="flex items-center gap-2 mb-2 text-[#A684FF]">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-sm font-medium">Feedback</span>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        {session.feedback || "No feedback of this session"}
+                      </p>
                     </div>
                   </div>
                 );

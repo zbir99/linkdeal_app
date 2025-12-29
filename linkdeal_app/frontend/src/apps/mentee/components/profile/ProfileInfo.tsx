@@ -93,6 +93,8 @@ const ProfileInfo: FunctionComponent = () => {
             <img
               src={profilePic}
               alt={profile.full_name}
+              crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
               className="w-24 h-24 mx-auto rounded-full object-cover mb-4 border-2 border-[#7008E7]"
               onError={() => {
                 console.warn('Profile picture failed to load:', profilePic);

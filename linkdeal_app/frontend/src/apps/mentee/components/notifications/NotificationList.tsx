@@ -17,14 +17,7 @@ interface NotificationListProps {
 
 const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllReadTrigger, activeFilter = 'All' }) => {
   const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'message',
-      title: 'New message from admin',
-      message: 'Hello, I have a question about our next session...',
-      time: '5 minutes ago',
-      isRead: false
-    },
+
     {
       id: 2,
       type: 'booking',
@@ -33,14 +26,7 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
       time: '2 hours ago',
       isRead: false
     },
-    {
-      id: 4,
-      type: 'message',
-      title: 'New message from admin',
-      message: 'Thank you for the session, it was very helpful!',
-      time: '2 days ago',
-      isRead: true
-    },
+
     {
       id: 5,
       type: 'reminder',
@@ -65,7 +51,7 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
   const handleDeleteNotification = (id: number) => {
     const updatedNotifications = notifications.filter(notification => notification.id !== id);
     setNotifications(updatedNotifications);
-    
+
     // Adjust current page if necessary
     const totalPages = Math.ceil(updatedNotifications.length / notificationsPerPage);
     if (currentPage > totalPages && totalPages > 0) {
@@ -94,7 +80,7 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
   // Filter notifications based on active filter
   const filteredNotifications = notifications.filter(notification => {
     if (activeFilter === 'All') return true;
-    if (activeFilter === 'Tickets') return notification.type === 'message';
+
     if (activeFilter === 'Booking') return notification.type === 'booking' || notification.type === 'reminder';
     if (activeFilter === 'Payment') return notification.type === 'payment';
     return true;
@@ -114,35 +100,35 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
       case 'message':
         return (
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#7008E7" fillOpacity="0.2"/>
-            <path d="M34 29C34 29.5304 33.7893 30.0391 33.4142 30.4142C33.0391 30.7893 32.5304 31 32 31H18.828C18.2976 31.0001 17.789 31.2109 17.414 31.586L15.212 33.788C15.1127 33.8873 14.9862 33.9549 14.8485 33.9823C14.7108 34.0097 14.568 33.9956 14.4383 33.9419C14.3086 33.8881 14.1977 33.7971 14.1197 33.6804C14.0417 33.5637 14 33.4264 14 33.286V17C14 16.4696 14.2107 15.9609 14.5858 15.5858C14.9609 15.2107 15.4696 15 16 15H32C32.5304 15 33.0391 15.2107 33.4142 15.5858C33.7893 15.9609 34 16.4696 34 17V29Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#7008E7" fillOpacity="0.2" />
+            <path d="M34 29C34 29.5304 33.7893 30.0391 33.4142 30.4142C33.0391 30.7893 32.5304 31 32 31H18.828C18.2976 31.0001 17.789 31.2109 17.414 31.586L15.212 33.788C15.1127 33.8873 14.9862 33.9549 14.8485 33.9823C14.7108 34.0097 14.568 33.9956 14.4383 33.9419C14.3086 33.8881 14.1977 33.7971 14.1197 33.6804C14.0417 33.5637 14 33.4264 14 33.286V17C14 16.4696 14.2107 15.9609 14.5858 15.5858C14.9609 15.2107 15.4696 15 16 15H32C32.5304 15 33.0391 15.2107 33.4142 15.5858C33.7893 15.9609 34 16.4696 34 17V29Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       case 'booking':
       case 'reminder':
         return (
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#2B7FFF" fillOpacity="0.2"/>
-            <path d="M20 14V18" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M28 14V18" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M31 16H17C15.8954 16 15 16.8954 15 18V32C15 33.1046 15.8954 34 17 34H31C32.1046 34 33 33.1046 33 32V18C33 16.8954 32.1046 16 31 16Z" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M15 22H33" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#2B7FFF" fillOpacity="0.2" />
+            <path d="M20 14V18" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M28 14V18" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M31 16H17C15.8954 16 15 16.8954 15 18V32C15 33.1046 15.8954 34 17 34H31C32.1046 34 33 33.1046 33 32V18C33 16.8954 32.1046 16 31 16Z" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 22H33" stroke="#51A2FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       case 'achievement':
         return (
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#FF6900" fillOpacity="0.2"/>
-            <path d="M27.4768 24.8901L28.9918 33.4161C29.0087 33.5165 28.9946 33.6197 28.9514 33.7119C28.9081 33.8041 28.8377 33.8808 28.7497 33.9319C28.6616 33.983 28.56 34.006 28.4586 33.9978C28.3571 33.9897 28.2605 33.9507 28.1818 33.8861L24.6018 31.1991C24.4289 31.07 24.219 31.0003 24.0033 31.0003C23.7875 31.0003 23.5776 31.07 23.4048 31.1991L19.8188 33.8851C19.7401 33.9496 19.6436 33.9885 19.5422 33.9967C19.4409 34.0049 19.3394 33.982 19.2514 33.931C19.1634 33.88 19.093 33.8035 19.0497 33.7115C19.0063 33.6195 18.992 33.5165 19.0088 33.4161L20.5228 24.8901" stroke="#FF8904" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M24 26C27.3137 26 30 23.3137 30 20C30 16.6863 27.3137 14 24 14C20.6863 14 18 16.6863 18 20C18 23.3137 20.6863 26 24 26Z" stroke="#FF8904" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#FF6900" fillOpacity="0.2" />
+            <path d="M27.4768 24.8901L28.9918 33.4161C29.0087 33.5165 28.9946 33.6197 28.9514 33.7119C28.9081 33.8041 28.8377 33.8808 28.7497 33.9319C28.6616 33.983 28.56 34.006 28.4586 33.9978C28.3571 33.9897 28.2605 33.9507 28.1818 33.8861L24.6018 31.1991C24.4289 31.07 24.219 31.0003 24.0033 31.0003C23.7875 31.0003 23.5776 31.07 23.4048 31.1991L19.8188 33.8851C19.7401 33.9496 19.6436 33.9885 19.5422 33.9967C19.4409 34.0049 19.3394 33.982 19.2514 33.931C19.1634 33.88 19.093 33.8035 19.0497 33.7115C19.0063 33.6195 18.992 33.5165 19.0088 33.4161L20.5228 24.8901" stroke="#FF8904" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M24 26C27.3137 26 30 23.3137 30 20C30 16.6863 27.3137 14 24 14C20.6863 14 18 16.6863 18 20C18 23.3137 20.6863 26 24 26Z" stroke="#FF8904" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       case 'payment':
         return (
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#00C950" fillOpacity="0.2"/>
-            <path d="M24 14V34" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M29 17H21.5C20.5717 17 19.6815 17.3687 19.0251 18.0251C18.3687 18.6815 18 19.5717 18 20.5C18 21.4283 18.3687 22.3185 19.0251 22.9749C19.6815 23.6313 20.5717 24 21.5 24H26.5C27.4283 24 28.3185 24.3687 28.9749 25.0251C29.6313 25.6815 30 26.5717 30 27.5C30 28.4283 29.6313 29.3185 28.9749 29.9749C28.3185 30.6313 27.4283 31 26.5 31H18" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#00C950" fillOpacity="0.2" />
+            <path d="M24 14V34" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M29 17H21.5C20.5717 17 19.6815 17.3687 19.0251 18.0251C18.3687 18.6815 18 19.5717 18 20.5C18 21.4283 18.3687 22.3185 19.0251 22.9749C19.6815 23.6313 20.5717 24 21.5 24H26.5C27.4283 24 28.3185 24.3687 28.9749 25.0251C29.6313 25.6815 30 26.5717 30 27.5C30 28.4283 29.6313 29.3185 28.9749 29.9749C28.3185 30.6313 27.4283 31 26.5 31H18" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       default:
@@ -156,8 +142,8 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.6914 28C13.9255 28.4054 14.2621 28.742 14.6675 28.976C15.0728 29.21 15.5327 29.3332 16.0007 29.3332C16.4688 29.3332 16.9286 29.21 17.334 28.976C17.7394 28.742 18.076 28.4054 18.3101 28" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4.35031 20.4345C4.17613 20.6254 4.06118 20.8628 4.01945 21.1179C3.97772 21.3729 4.011 21.6346 4.11525 21.871C4.2195 22.1075 4.39023 22.3086 4.60665 22.4498C4.82308 22.591 5.07588 22.6663 5.33431 22.6665H26.6676C26.926 22.6666 27.1789 22.5916 27.3955 22.4506C27.612 22.3097 27.783 22.1088 27.8875 21.8725C27.992 21.6362 28.0256 21.3746 27.9842 21.1196C27.9428 20.8645 27.8282 20.627 27.6543 20.4358C25.881 18.6078 24.001 16.6652 24.001 10.6665C24.001 8.54477 23.1581 6.50994 21.6578 5.00965C20.1575 3.50936 18.1227 2.6665 16.001 2.6665C13.8792 2.6665 11.8444 3.50936 10.3441 5.00965C8.84383 6.50994 8.00098 8.54477 8.00098 10.6665C8.00098 16.6652 6.11965 18.6078 4.35031 20.4345Z" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M13.6914 28C13.9255 28.4054 14.2621 28.742 14.6675 28.976C15.0728 29.21 15.5327 29.3332 16.0007 29.3332C16.4688 29.3332 16.9286 29.21 17.334 28.976C17.7394 28.742 18.076 28.4054 18.3101 28" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M4.35031 20.4345C4.17613 20.6254 4.06118 20.8628 4.01945 21.1179C3.97772 21.3729 4.011 21.6346 4.11525 21.871C4.2195 22.1075 4.39023 22.3086 4.60665 22.4498C4.82308 22.591 5.07588 22.6663 5.33431 22.6665H26.6676C26.926 22.6666 27.1789 22.5916 27.3955 22.4506C27.612 22.3097 27.783 22.1088 27.8875 21.8725C27.992 21.6362 28.0256 21.3746 27.9842 21.1196C27.9428 20.8645 27.8282 20.627 27.6543 20.4358C25.881 18.6078 24.001 16.6652 24.001 10.6665C24.001 8.54477 23.1581 6.50994 21.6578 5.00965C20.1575 3.50936 18.1227 2.6665 16.001 2.6665C13.8792 2.6665 11.8444 3.50936 10.3441 5.00965C8.84383 6.50994 8.00098 8.54477 8.00098 10.6665C8.00098 16.6652 6.11965 18.6078 4.35031 20.4345Z" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <h3 className="text-xl text-white font-medium mb-2">No notifications exist</h3>
@@ -168,11 +154,10 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
           {currentNotifications.map((notification) => (
             <div
               key={notification.id}
-              className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${
-                !notification.isRead
+              className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${!notification.isRead
                   ? 'bg-[#7008E7]/10 border-[#7008E7]/30 hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-[#7008E7]/20'
                   : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-white/10'
-              }`}
+                }`}
             >
               <div className="flex gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center flex-shrink-0">
@@ -196,13 +181,13 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
                   </p>
                 </div>
 
-                <button 
+                <button
                   onClick={() => handleDeleteNotification(notification.id)}
                   className="w-5 h-5 text-gray-400 hover:text-white transition-colors duration-300 flex-shrink-0"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               </div>
@@ -214,37 +199,34 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${
-                  currentPage === 1
+                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === 1
                     ? 'bg-white/5 text-gray-500 cursor-not-allowed'
                     : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                }`}
+                  }`}
               >
                 ←
               </button>
-              
+
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${
-                    currentPage === page
+                  className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === page
                       ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
                       : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>
               ))}
-              
+
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${
-                  currentPage === totalPages
+                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === totalPages
                     ? 'bg-white/5 text-gray-500 cursor-not-allowed'
                     : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                }`}
+                  }`}
               >
                 →
               </button>

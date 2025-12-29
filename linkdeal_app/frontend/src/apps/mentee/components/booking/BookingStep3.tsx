@@ -41,7 +41,7 @@ const BookingStep3: FunctionComponent<BookingStep3Props> = ({ onContinue, onBack
     setSubmitError(null);
 
     try {
-      // Combine date and time into ISO format
+      // 1. Combine date and time into ISO format
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const scheduledAt = new Date(selectedDate);
       scheduledAt.setHours(hours, minutes, 0, 0);
@@ -56,13 +56,64 @@ const BookingStep3: FunctionComponent<BookingStep3Props> = ({ onContinue, onBack
         objectives: sessionTopic ? [sessionTopic] : [],
       };
 
-      const response = await api.post('scheduling/sessions/create/', bookingData);
+      // 2. Create the session first
+      const sessionResponse = await api.post('scheduling/sessions/create/', bookingData);
+      console.log('Session response:', sessionResponse);
+      console.log('Session response data:', sessionResponse.data);
 
-      setCreatedSessionId(response.data.id);
+      // The response might be wrapped in a data object
+      const sessionId = sessionResponse.data.data?.id || sessionResponse.data.id;
+      console.log('Session ID to use for payment:', sessionId);
+      setCreatedSessionId(sessionId);
+
+      // 3. Create a payment record for this session
+      const paymentResponse = await api.post('billing/payments/', {
+        session_id: sessionId,
+        payment_method: 'bank_transfer'
+      });
+      const paymentId = paymentResponse.data.data.id;
+
+      // 4. Confirm the payment (in sandbox mode, this immediately succeeds)
+      await api.post(`billing/payments/${paymentId}/confirm/`, {
+        reference: `LYNVIA-${Date.now()}`
+      });
+
+      // 5. Proceed to confirmation step
       onContinue();
     } catch (err: unknown) {
       console.error('Error creating booking:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create booking. Please try again.';
+      let errorMessage = 'Failed to create booking. Please try again.';
+
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: Record<string, unknown> } };
+        const data = axiosError.response?.data;
+
+        if (data) {
+          // Handle various error formats
+          if (typeof data.message === 'string') {
+            errorMessage = data.message;
+          } else if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (typeof data.detail === 'string') {
+            errorMessage = data.detail;
+          } else if (data.session_id && Array.isArray(data.session_id)) {
+            // Validation error for session_id field
+            errorMessage = data.session_id[0] as string;
+          } else if (typeof data === 'object') {
+            // Try to get first error message from validation errors
+            const firstKey = Object.keys(data)[0];
+            const firstValue = data[firstKey];
+            if (Array.isArray(firstValue) && typeof firstValue[0] === 'string') {
+              errorMessage = `${firstKey}: ${firstValue[0]}`;
+            } else if (typeof firstValue === 'string') {
+              errorMessage = firstValue;
+            }
+          }
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
       setSubmitError(errorMessage);
       setError(errorMessage);
     } finally {

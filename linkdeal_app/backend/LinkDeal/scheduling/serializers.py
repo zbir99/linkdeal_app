@@ -226,10 +226,12 @@ class SessionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
         fields = [
+            'id',  # Include id in response
             'mentor_id', 'session_type_id',
             'scheduled_at', 'duration_minutes', 'timezone',
             'topic', 'mentee_notes', 'objectives'
         ]
+        read_only_fields = ['id']
     
     def validate_mentor_id(self, value):
         try:

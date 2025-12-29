@@ -8,6 +8,7 @@ interface MentorProfile {
   full_name?: string;
   profile_picture?: string;
   social_picture_url?: string;
+  wallet_balance?: number;
 }
 
 const WelcomeHeader: FunctionComponent = () => {
@@ -15,6 +16,7 @@ const WelcomeHeader: FunctionComponent = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState<MentorProfile | null>(null);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,9 @@ const WelcomeHeader: FunctionComponent = () => {
         const response = await api.get('auth/mentors/profile/me/');
         console.log('Mentor profile fetched:', response.data);
         setProfileData(response.data);
+
+        // Set wallet balance
+        setWalletBalance(parseFloat(response.data.wallet_balance) || 0);
 
         // Logic for profile picture display:
         // 1. Uploaded picture (profile_picture)
@@ -54,6 +59,10 @@ const WelcomeHeader: FunctionComponent = () => {
     navigate('/mentor/notifications');
   };
 
+  const handleWalletClick = () => {
+    navigate('/mentor/wallet');
+  };
+
   const handleProfileClick = () => {
     navigate('/mentor/profile');
   };
@@ -66,6 +75,11 @@ const WelcomeHeader: FunctionComponent = () => {
     setIsMenuOpen(false);
     await authService.logout();
     navigate('/login');
+  };
+
+  const handleContactClick = () => {
+    setIsMenuOpen(false);
+    navigate('/mentor/contact-us');
   };
 
   useEffect(() => {
@@ -97,6 +111,19 @@ const WelcomeHeader: FunctionComponent = () => {
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       {/* Mobile: Icons at top */}
       <div className="flex items-center justify-end gap-3 md:hidden">
+        {/* Wallet Button */}
+        <button
+          onClick={handleWalletClick}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#7008E7]/20 to-[#5a07b8]/20 border border-[#7008E7]/30 hover:border-[#7008E7]/50 transition-all duration-200"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 12V7H3V19H21V14" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 7L12 2L21 7" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="18" cy="13" r="2" fill="#A684FF" />
+          </svg>
+          <span className="text-xs font-medium text-[#A684FF]">${walletBalance.toFixed(0)}</span>
+        </button>
+
         <button
           onClick={handleNotificationsClick}
           className="relative hover:scale-105 transition-transform duration-200 cursor-pointer"
@@ -144,6 +171,14 @@ const WelcomeHeader: FunctionComponent = () => {
 
               <div className="h-px bg-white/10" />
               <button
+                onClick={handleContactClick}
+                className="w-full px-3 py-2.5 text-left text-xs text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
+              >
+                Contact Us
+              </button>
+
+              <div className="h-px bg-white/10" />
+              <button
                 onClick={handleLogout}
                 className="w-full px-3 py-2.5 text-left text-xs text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors duration-200"
               >
@@ -166,6 +201,19 @@ const WelcomeHeader: FunctionComponent = () => {
 
       {/* Desktop: Icons on right */}
       <div className="hidden md:flex items-center justify-end gap-3 md:gap-4">
+        {/* Wallet Button */}
+        <button
+          onClick={handleWalletClick}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7008E7]/20 to-[#5a07b8]/20 border border-[#7008E7]/30 hover:border-[#7008E7]/50 transition-all duration-200"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 12V7H3V19H21V14" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 7L12 2L21 7" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="18" cy="13" r="2" fill="#A684FF" />
+          </svg>
+          <span className="text-sm font-medium text-[#A684FF]">${walletBalance.toFixed(2)}</span>
+        </button>
+
         <button
           onClick={handleNotificationsClick}
           className="relative hover:scale-105 transition-transform duration-200 cursor-pointer"
@@ -209,6 +257,14 @@ const WelcomeHeader: FunctionComponent = () => {
                 className="w-full px-3 py-2.5 md:px-4 md:py-3 text-left text-xs md:text-sm text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
               >
                 Profile
+              </button>
+
+              <div className="h-px bg-white/10" />
+              <button
+                onClick={handleContactClick}
+                className="w-full px-3 py-2.5 md:px-4 md:py-3 text-left text-xs md:text-sm text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
+              >
+                Contact Us
               </button>
 
               <div className="h-px bg-white/10" />

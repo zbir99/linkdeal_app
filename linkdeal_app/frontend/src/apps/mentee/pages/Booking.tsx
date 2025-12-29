@@ -135,7 +135,7 @@ const BookingContent: FunctionComponent = () => {
               <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <p className="text-white mb-4">{error}</p>
+          <p className="text-white mb-4">{typeof error === 'string' ? error : JSON.stringify(error)}</p>
           <button
             onClick={handleBackToProfile}
             className="px-6 py-2 rounded-lg bg-[#7008E7] text-white hover:bg-[#5a07b8] transition-colors"

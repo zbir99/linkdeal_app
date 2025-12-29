@@ -58,7 +58,7 @@ class PlatformSettingsView(APIView):
 class AdminDashboardStatsView(APIView):
     """
     GET: Admin dashboard statistics
-    Returns: total users, active mentors, monthly revenue, pending items
+    Returns: total users, active mentors, monthly revenue, pending items, total payments, platform earnings
     """
     permission_classes = [IsAuthenticatedAuth0, IsAdmin]
 
@@ -96,11 +96,45 @@ class AdminDashboardStatsView(APIView):
         else:
             formatted_revenue = f"€{monthly_revenue:.0f}"
 
+        # Calculate total payments and platform earnings from billing
+        total_payments = Decimal('0.00')
+        platform_earnings = Decimal('0.00')
+        try:
+            from billing.models import Payment
+            # Get all completed payments
+            completed_payments = Payment.objects.filter(status='completed')
+            
+            # Total of all payments (full amount)
+            total_payments_sum = completed_payments.aggregate(total=Sum('amount'))['total']
+            if total_payments_sum:
+                total_payments = Decimal(str(total_payments_sum))
+            
+            # Platform earnings (platform fees only, not mentor payouts)
+            platform_fees_sum = completed_payments.aggregate(total=Sum('platform_fee'))['total']
+            if platform_fees_sum:
+                platform_earnings = Decimal(str(platform_fees_sum))
+        except Exception:
+            pass
+
+        # Format total payments
+        if total_payments >= 1000:
+            formatted_total_payments = f"${total_payments / 1000:.1f}K"
+        else:
+            formatted_total_payments = f"${total_payments:.2f}"
+
+        # Format platform earnings
+        if platform_earnings >= 1000:
+            formatted_platform_earnings = f"${platform_earnings / 1000:.1f}K"
+        else:
+            formatted_platform_earnings = f"${platform_earnings:.2f}"
+
         return Response({
             "total_users": total_users,
             "active_mentors": active_mentors,
             "monthly_revenue": formatted_revenue,
             "pending_items": pending_mentors,
+            "total_payments": formatted_total_payments,
+            "platform_earnings": formatted_platform_earnings,
         })
 
 
@@ -163,19 +197,21 @@ class AdminDashboardChartsView(APIView):
             user_growth_data.append(mentor_count + mentee_count)
             user_growth_labels.append(p['label'])
 
-        # Calculate Revenue Trend
+        # Calculate Revenue Trend (from billing payments - platform earnings)
         revenue_data = []
         revenue_labels = []
         try:
-            from scheduling.models import Session
+            from billing.models import Payment
             for p in periods:
-                completed_sessions = Session.objects.filter(
+                # Get completed payments in this period
+                completed_payments = Payment.objects.filter(
                     status='completed',
-                    start_time__gte=p['start'],
-                    start_time__lte=p['end']
+                    completed_at__gte=p['start'],
+                    completed_at__lte=p['end']
                 )
-                total_amount = completed_sessions.aggregate(total=Sum('amount'))['total']
-                revenue_data.append(float(total_amount) if total_amount else 0)
+                # Sum platform fees (platform earnings, not total payments)
+                total_fees = completed_payments.aggregate(total=Sum('platform_fee'))['total']
+                revenue_data.append(float(total_fees) if total_fees else 0)
                 revenue_labels.append(p['label'])
         except Exception:
             revenue_data = [0] * len(periods)

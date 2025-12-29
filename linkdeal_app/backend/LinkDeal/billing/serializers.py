@@ -35,10 +35,31 @@ class PaymentSerializer(serializers.ModelSerializer):
         ]
 
 class PayoutSerializer(serializers.ModelSerializer):
+    time_ago = serializers.SerializerMethodField()
+    
     class Meta:
         model = Payout
-        fields = ['id', 'amount', 'currency', 'status', 'created_at', 'processed_at', 'bank_name', 'iban']
-        read_only_fields = ['status', 'currency', 'created_at', 'processed_at', 'bank_name', 'iban']
+        fields = ['id', 'amount', 'currency', 'status', 'time_ago', 'created_at', 'processed_at', 'bank_name', 'iban']
+        read_only_fields = ['status', 'currency', 'time_ago', 'created_at', 'processed_at', 'bank_name', 'iban']
+    
+    def get_time_ago(self, obj):
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        now = timezone.now()
+        diff = now - obj.created_at
+        
+        if diff < timedelta(hours=1):
+            minutes = int(diff.total_seconds() / 60)
+            return f"{minutes}m ago" if minutes > 1 else "just now"
+        elif diff < timedelta(days=1):
+            hours = int(diff.total_seconds() / 3600)
+            return f"{hours}h ago"
+        elif diff < timedelta(days=7):
+            days = diff.days
+            return f"{days}d ago"
+        else:
+            return obj.created_at.strftime("%b %d, %Y")
 
 class RequestPayoutSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('200.00'))
@@ -83,15 +104,22 @@ class CreatePaymentSerializer(serializers.Serializer):
     
     def create(self, validated_data):
         from scheduling.models import Session
+        from decimal import Decimal
         
         session = Session.objects.get(id=validated_data['session_id'])
+        
+        # Calculate price from mentor's session rate
+        # session_rate is per hour, so calculate based on duration
+        hourly_rate = session.mentor.session_rate or Decimal('0')
+        hours = Decimal(session.duration_minutes) / Decimal('60')
+        calculated_price = hourly_rate * hours
         
         payment = Payment.objects.create(
             session=session,
             mentee=session.mentee,
             mentor=session.mentor,
-            amount=session.price,
-            currency=session.currency,
+            amount=calculated_price,
+            currency='USD',  # Default currency
             payment_method=validated_data.get('payment_method', 'bank_transfer'),
         )
         
@@ -113,11 +141,13 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
     """Lightweight serializer for payment history list."""
     
     mentor_name = serializers.CharField(source='mentor.full_name', read_only=True)
+    mentee_name = serializers.CharField(source='mentee.full_name', read_only=True)
+    session_status = serializers.CharField(source='session.status', read_only=True)
     time_ago = serializers.SerializerMethodField()
     
     class Meta:
         model = Payment
-        fields = ['id', 'mentor_name', 'amount', 'currency', 'status', 'time_ago', 'created_at']
+        fields = ['id', 'mentor_name', 'mentee_name', 'amount', 'currency', 'status', 'session_status', 'time_ago', 'created_at']
     
     def get_time_ago(self, obj):
         from django.utils import timezone

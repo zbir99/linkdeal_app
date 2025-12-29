@@ -89,6 +89,47 @@ const PendingIcon = () => (
     </svg>
 );
 
+// Icon for platform earnings
+const PlatformEarningsIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 14L4 9L9 4" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 20V13C20 11.9391 19.5786 10.9217 18.8284 10.1716C18.0783 9.42143 17.0609 9 16 9H4" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+// Platform earnings badge
+const EarningsBadge = () => (
+    <svg width="60" height="22" viewBox="0 0 60 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <mask id="path-1-inside-earnings" fill="white">
+            <path d="M0 9.99999C0 4.47715 4.47715 0 10 0H50C55.5228 0 60 4.47715 60 10V11.5875C60 17.1104 55.5228 21.5875 50 21.5875H10C4.47716 21.5875 0 17.1103 0 11.5875V9.99999Z" />
+        </mask>
+        <path d="M0 9.99999C0 4.47715 4.47715 0 10 0H50C55.5228 0 60 4.47715 60 10V11.5875C60 17.1104 55.5228 21.5875 50 21.5875H10C4.47716 21.5875 0 17.1103 0 11.5875V9.99999Z" fill="#A684FF" fillOpacity="0.1" />
+        <path d="M10 0V0.8H50V0V-0.8H10V0Z" fill="#A684FF" fillOpacity="0.2" mask="url(#path-1-inside-earnings)" />
+        <text x="30" y="14" textAnchor="middle" fill="#A684FF" fontSize="10" fontWeight="500">Profit</text>
+    </svg>
+);
+
+// Total payments icon (dollar sign)
+const TotalPaymentsIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="#05DF72" strokeWidth="2" />
+        <path d="M12 6V18" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" />
+        <path d="M15 9.5C15 8.12 13.657 7 12 7C10.343 7 9 8.12 9 9.5C9 10.88 10.343 12 12 12C13.657 12 15 13.12 15 14.5C15 15.88 13.657 17 12 17C10.343 17 9 15.88 9 14.5" stroke="#05DF72" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+);
+
+// Total badge
+const TotalBadge = () => (
+    <svg width="48" height="22" viewBox="0 0 48 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <mask id="path-1-inside-total" fill="white">
+            <path d="M0 9.99999C0 4.47715 4.47715 0 10 0H38C43.5228 0 48 4.47715 48 10V11.5875C48 17.1104 43.5228 21.5875 38 21.5875H10C4.47716 21.5875 0 17.1103 0 11.5875V9.99999Z" />
+        </mask>
+        <path d="M0 9.99999C0 4.47715 4.47715 0 10 0H38C43.5228 0 48 4.47715 48 10V11.5875C48 17.1104 43.5228 21.5875 38 21.5875H10C4.47716 21.5875 0 17.1103 0 11.5875V9.99999Z" fill="#00C950" fillOpacity="0.1" />
+        <path d="M10 0V0.8H38V0V-0.8H10V0Z" fill="#00C950" fillOpacity="0.2" mask="url(#path-1-inside-total)" />
+        <text x="24" y="14" textAnchor="middle" fill="#05DF72" fontSize="10" fontWeight="500">Total</text>
+    </svg>
+);
+
 export const StatisticCards = (): JSX.Element => {
     const [stats, setStats] = useState<StatCard[]>([
         {
@@ -108,20 +149,20 @@ export const StatisticCards = (): JSX.Element => {
             iconBg: 'bg-blue-500/20',
         },
         {
-            label: 'Monthly Revenue',
+            label: 'Total Payments',
             value: '-',
-            badge: <PositiveBadge3 />,
+            badge: <TotalBadge />,
             tone: 'positive',
-            icon: <RevenueIcon />,
+            icon: <TotalPaymentsIcon />,
             iconBg: 'bg-green-500/20',
         },
         {
-            label: 'Pending Items',
+            label: 'Platform Earnings',
             value: '-',
-            badge: <WarningBadge />,
-            tone: 'warning',
-            icon: <PendingIcon />,
-            iconBg: 'bg-orange-500/20',
+            badge: <EarningsBadge />,
+            tone: 'positive',
+            icon: <PlatformEarningsIcon />,
+            iconBg: 'bg-purple-500/20',
         },
     ]);
     const [loading, setLoading] = useState(true);
@@ -135,8 +176,8 @@ export const StatisticCards = (): JSX.Element => {
                 setStats(prev => [
                     { ...prev[0], value: data.total_users.toLocaleString() },
                     { ...prev[1], value: data.active_mentors.toLocaleString() },
-                    { ...prev[2], value: data.monthly_revenue },
-                    { ...prev[3], value: data.pending_items.toString() },
+                    { ...prev[2], value: data.total_payments || '$0.00' },
+                    { ...prev[3], value: data.platform_earnings || '$0.00' },
                 ]);
             } catch (error) {
                 console.error('Failed to fetch dashboard stats:', error);

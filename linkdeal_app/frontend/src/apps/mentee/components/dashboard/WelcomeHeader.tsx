@@ -67,6 +67,11 @@ const WelcomeHeader: FunctionComponent = () => {
     navigate('/login');
   };
 
+  const handleContactClick = () => {
+    setIsMenuOpen(false);
+    navigate('/mentee/contact-us');
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -117,6 +122,8 @@ const WelcomeHeader: FunctionComponent = () => {
               <img
                 src={profilePictureUrl}
                 alt={`${displayName}'s profile`}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 className="w-11 h-11 min-w-[44px] min-h-[44px] max-w-[44px] max-h-[44px] rounded-full object-cover border-2 border-purple-500 flex-shrink-0"
                 onError={() => {
                   console.warn('Profile picture failed to load:', profilePictureUrl);
@@ -147,6 +154,14 @@ const WelcomeHeader: FunctionComponent = () => {
                 className="w-full px-4 py-3 text-left text-sm text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
               >
                 Profile
+              </button>
+
+              <div className="h-px bg-white/10" />
+              <button
+                onClick={handleContactClick}
+                className="w-full px-4 py-3 text-left text-sm text-white/80 hover:bg-[#ffffff1a] hover:text-white transition-colors duration-200"
+              >
+                Contact Us
               </button>
 
               <div className="h-px bg-white/10" />

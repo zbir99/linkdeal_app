@@ -256,6 +256,7 @@ class MentorProfileMeView(APIView):
                 "cv_url": cv_url,
                 "status": mentor_profile.status,
                 "session_rate": str(mentor_profile.session_rate),
+                "wallet_balance": str(mentor_profile.wallet_balance or 0),
             })
             # Prevent browser caching of profile data
             response['Cache-Control'] = 'no-cache, no-store, must-revalidate'

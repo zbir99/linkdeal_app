@@ -13,6 +13,7 @@ import Booking from './pages/Booking';
 import Rate from './pages/Rate';
 import My_tickets from './pages/My_tickets';
 import Tickets from './pages/Tickets';
+import ContactUs from './pages/ContactUs';
 import Payment_history from './pages/Payment_history';
 import Signup from './pages/Signup';
 import Vd_call from './pages/Vd_call';
@@ -81,7 +82,7 @@ export const menteeRoutes: RouteObject[] = [
     },
     {
         path: '/mentee/contact-us',
-        element: <ProtectedRoute><Tickets /></ProtectedRoute>
+        element: <ProtectedRoute><ContactUs /></ProtectedRoute>
     },
     {
         path: '/mentee/payment-history',

@@ -107,6 +107,8 @@ const SessionDetailsModal: FunctionComponent<SessionDetailsModalProps> = ({ isOp
                 <img
                   src={session.profilePicture}
                   alt={session.name}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (

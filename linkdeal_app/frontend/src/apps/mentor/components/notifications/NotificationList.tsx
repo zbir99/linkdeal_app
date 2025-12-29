@@ -16,14 +16,7 @@ interface NotificationListProps {
 
 const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllReadTrigger }) => {
   const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'message',
-      title: 'New message from admin',
-      message: 'Hello, I have a question about our next session...',
-      time: '5 minutes ago',
-      isRead: false
-    },
+
     {
       id: 2,
       type: 'booking',
@@ -32,14 +25,7 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
       time: '2 hours ago',
       isRead: false
     },
-    {
-      id: 4,
-      type: 'message',
-      title: 'New message from admin',
-      message: 'Thank you for the session, it was very helpful!',
-      time: '2 days ago',
-      isRead: true
-    },
+
     {
       id: 5,
       type: 'reminder',
@@ -154,8 +140,8 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
             <div
               key={notification.id}
               className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${!notification.isRead
-                  ? 'bg-[#7008E7]/10 border-[#7008E7]/30 hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-[#7008E7]/20'
-                  : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-white/10'
+                ? 'bg-[#7008E7]/10 border-[#7008E7]/30 hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-[#7008E7]/20'
+                : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-white/10'
                 }`}
             >
               <div className="flex gap-4">
@@ -199,8 +185,8 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === 1
-                    ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                    : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+                  ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                  : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
                   }`}
               >
                 ←
@@ -211,8 +197,8 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
                   key={page}
                   onClick={() => handlePageChange(page)}
                   className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === page
-                      ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
-                      : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+                    ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
+                    : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
                     }`}
                 >
                   {page}
@@ -223,8 +209,8 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === totalPages
-                    ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                    : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+                  ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                  : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
                   }`}
               >
                 →

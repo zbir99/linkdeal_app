@@ -8,7 +8,6 @@ interface NotificationFiltersProps {
 const NotificationFilters: FunctionComponent<NotificationFiltersProps> = ({ activeFilter, onFilterChange }) => {
   const filters = [
     { name: 'All', count: 0 },
-    { name: 'Tickets', count: 2 },
     { name: 'Booking', count: 0 },
     { name: 'Payment', count: 0 }
   ];
@@ -19,11 +18,10 @@ const NotificationFilters: FunctionComponent<NotificationFiltersProps> = ({ acti
         <button
           key={filter.name}
           onClick={() => onFilterChange(filter.name)}
-          className={`px-4 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${
-            activeFilter === filter.name
+          className={`px-4 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${activeFilter === filter.name
               ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
               : 'bg-white/5 border border-white/20 text-gray-400 hover:bg-white/10 hover:text-white'
-          }`}
+            }`}
         >
           {filter.name}
           {filter.count > 0 && (

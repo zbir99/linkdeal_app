@@ -26,7 +26,7 @@ const countries = [
     'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
     'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
 ];
-const languages = ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Swedish', 'Norwegian', 'Danish', 'Finnish', 'Polish', 'Russian', 'Chinese', 'Japanese', 'Korean', 'Arabic', 'Hindi', 'Other'];
+const languages = ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Swedish', 'Norwegian', 'Danish', 'Finnish', 'Polish', 'Russian', 'Chinese', 'Japanese', 'Korean', 'Arabic', 'Hindi'];
 const roles = ['Student', 'Professional', 'Entrepreneur', 'Career Changer', 'Job Seeker', 'Researcher', 'Other'];
 const fields = ['Web Development', 'Mobile Development', 'Data Science', 'Machine Learning', 'UI/UX Design', 'Cybersecurity', 'Cloud Computing', 'DevOps', 'Blockchain', 'Game Development', 'Digital Marketing', 'Business', 'Finance', 'Other'];
 
@@ -646,57 +646,9 @@ export const Information = (): JSX.Element => {
                                     </div>
 
 
-
-                                    {/* Row with I am a and Field/Specialty */}
+                                    {/* Field/Specialty */}
                                     <div className="relative self-stretch w-full h-[65px]">
-                                        <div className="flex flex-col w-[295px] h-[65px] items-start gap-2 absolute top-0 left-0">
-                                            <div className="flex h-[21px] items-center gap-2 relative self-stretch w-full">
-                                                <div className="relative w-fit mt-[-1.00px] [font-family:'Arimo-Regular',Helvetica] font-normal text-[#d0d5db] text-sm tracking-[0] leading-[21px] whitespace-nowrap">
-                                                    I am a
-                                                </div>
-                                            </div>
-
-                                            <div className="relative w-full" ref={roleDropdownRef}>
-                                                <div
-                                                    className="flex h-9 items-center justify-between px-3 py-0 relative self-stretch w-full bg-[#ffffff0d] rounded-lg border-[0.8px] border-solid border-[#354152] cursor-pointer hover:bg-[#ffffff1a] hover:border-[#7008e7]/50 transition-all duration-300 group"
-                                                    onClick={handleRoleDropdownClick}
-                                                >
-                                                    <div className="w-[95.91px] flex h-5 items-center gap-2 relative overflow-hidden">
-                                                        <div className="relative w-fit mt-[-1.00px] [font-family:'Arimo-Regular',Helvetica] font-normal text-[#717182] text-sm tracking-[0] leading-5 whitespace-nowrap group-hover:text-white transition-colors duration-300">
-                                                            {selectedRole || 'Select your role'}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="relative w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300">
-                                                        <svg className={`w-4 h-4 transition-transform duration-300 ${roleDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <g opacity="0.5">
-                                                                <path d="M4 6L8 10L12 6" stroke="#717182" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </g>
-                                                        </svg>
-                                                    </div>
-                                                </div>
-                                                {roleDropdownOpen && (
-                                                    <div className="dropdown-scrollbar absolute top-full left-0 right-0 mt-1 bg-[#1a1a2e] rounded-lg border-[0.8px] border-solid border-[#354152] shadow-xl z-50 max-h-48 overflow-y-auto">
-                                                        <div className="py-1">
-                                                            {roles.map((role) => (
-                                                                <div
-                                                                    key={role}
-                                                                    className="px-3 py-2 text-sm text-[#717182] hover:bg-[#7008e7]/30 hover:text-purple-200 cursor-pointer transition-colors duration-200"
-                                                                    onClick={() => {
-                                                                        setSelectedRole(role);
-                                                                        setRoleDropdownOpen(false);
-                                                                    }}
-                                                                >
-                                                                    {role}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col w-[295px] h-[65px] items-start gap-2 absolute top-0 left-[311px]">
+                                        <div className="flex flex-col w-full h-[65px] items-start gap-2">
                                             <div className="flex h-[21px] items-center gap-2 relative self-stretch w-full">
                                                 <div className="relative w-fit mt-[-1.00px] [font-family:'Arimo-Regular',Helvetica] font-normal text-[#d0d5db] text-sm tracking-[0] leading-[21px] whitespace-nowrap">
                                                     Field / Specialty
@@ -917,35 +869,6 @@ export const Information = (): JSX.Element => {
                                                 }}
                                             >
                                                 {language}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-2 relative" ref={roleDropdownMobileRef}>
-                                <label className="text-sm text-white/70">I am a</label>
-                                <div
-                                    className="flex items-center justify-between h-11 px-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer"
-                                    onClick={handleRoleDropdownClick}
-                                >
-                                    <span className="text-sm text-white/70">{selectedRole || 'Select your role'}</span>
-                                    <svg className={`w-4 h-4 transition-transform ${roleDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                </div>
-                                {roleDropdownOpen && (
-                                    <div className="dropdown-scrollbar absolute left-0 right-0 mt-1 bg-[#1a1a2e] rounded-xl border border-white/10 max-h-48 overflow-y-auto z-10">
-                                        {roles.map((role) => (
-                                            <div
-                                                key={`mobile-role-${role}`}
-                                                className="px-3 py-2 text-sm text-white/70 hover:bg-purple-600/30"
-                                                onClick={() => {
-                                                    setSelectedRole(role);
-                                                    setRoleDropdownOpen(false);
-                                                }}
-                                            >
-                                                {role}
                                             </div>
                                         ))}
                                     </div>

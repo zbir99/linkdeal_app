@@ -469,10 +469,31 @@ class SessionStatsView(APIView):
         avg_rating_result = sessions.filter(rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
         avg_rating = round(avg_rating_result, 1) if avg_rating_result else None
         
-        # Total earned (from completed sessions)
-        total_earned = sessions.filter(status='completed').aggregate(
-            total=Sum('price')
-        )['total'] or Decimal('0.00')
+        # Total earned (from billing payments - mentor's payout, not full amount)
+        total_earned = Decimal('0.00')
+        if is_mentor:
+            try:
+                from billing.models import Payment
+                # Get completed payments where this mentor is the recipient
+                mentor_payments = Payment.objects.filter(
+                    mentor=mentor,
+                    status='completed',
+                    session__status='completed'
+                )
+                # Sum mentor_payout (their share after platform fee)
+                payout_sum = mentor_payments.aggregate(total=Sum('mentor_payout'))['total']
+                if payout_sum:
+                    total_earned = Decimal(str(payout_sum))
+            except Exception:
+                # Fallback to session-based calculation if billing fails
+                total_earned = sessions.filter(status='completed').aggregate(
+                    total=Sum('price')
+                )['total'] or Decimal('0.00')
+        else:
+            # For mentees, show how much they've paid
+            total_earned = sessions.filter(status='completed').aggregate(
+                total=Sum('price')
+            )['total'] or Decimal('0.00')
         
         data = {
             'total_sessions': total,
