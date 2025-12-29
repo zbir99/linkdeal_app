@@ -212,6 +212,30 @@ class MentorProfile(models.Model):
         help_text="Mentor's hourly rate for sessions (in USD or base currency)."
     )
 
+    # Banking Information for Payouts
+    bank_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Bank Name for Payouts"
+    )
+    iban = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="International Bank Account Number (IBAN)"
+    )
+    swift_bic = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Bank Identifier Code (SWIFT/BIC)"
+    )
+
+    wallet_balance = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Current wallet balance available for payout"
+    )
+
     # Vector embedding for semantic matching (384-dimension for all-MiniLM-L6-v2)
     embedding = models.JSONField(
         null=True,
