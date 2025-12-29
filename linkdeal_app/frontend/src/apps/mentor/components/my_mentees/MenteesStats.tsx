@@ -1,11 +1,21 @@
 import { FunctionComponent, useEffect, useState } from 'react';
 import api from '@/services/api';
 
+interface SessionCounts {
+  pending: number;
+  confirmed: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+  no_show: number;
+}
+
 interface StatsData {
   total_mentees: number;
   active_mentees: number;
   total_sessions: number;
   average_rating: number | null;
+  session_counts?: SessionCounts;
 }
 
 export const MenteesStats: FunctionComponent = () => {
@@ -26,7 +36,16 @@ export const MenteesStats: FunctionComponent = () => {
     fetchStats();
   }, []);
 
-  const statsConfig = [
+  const sessionCounts = stats?.session_counts || {
+    pending: 0,
+    confirmed: 0,
+    in_progress: 0,
+    completed: 0,
+    cancelled: 0,
+    no_show: 0,
+  };
+
+  const mainStatsConfig = [
     {
       label: 'Total Mentees',
       value: stats?.total_mentees ?? 0,
@@ -49,19 +68,6 @@ export const MenteesStats: FunctionComponent = () => {
       )
     },
     {
-      label: 'Total Sessions',
-      value: stats?.total_sessions ?? 0,
-      icon: (
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 12C0 5.37258 5.37258 0 12 0H28C34.6274 0 40 5.37258 40 12V28C40 34.6274 34.6274 40 28 40H12C5.37258 40 0 34.6274 0 28V12Z" fill="#3B82F6" fillOpacity="0.2" />
-          <path d="M16.6667 11.666V14.9993" stroke="#60A5FA" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M23.3333 11.666V14.9993" stroke="#60A5FA" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M25.8333 13.334H14.1667C13.2462 13.334 12.5 14.0802 12.5 15.0007V26.6673C12.5 27.5878 13.2462 28.334 14.1667 28.334H25.8333C26.7538 28.334 27.5 27.5878 27.5 26.6673V15.0007C27.5 14.0802 26.7538 13.334 25.8333 13.334Z" stroke="#60A5FA" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M12.5 18.334H27.5" stroke="#60A5FA" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
-    },
-    {
       label: 'Avg Rating',
       value: stats?.average_rating ? parseFloat(String(stats.average_rating)).toFixed(1) : '-',
       icon: (
@@ -73,46 +79,112 @@ export const MenteesStats: FunctionComponent = () => {
     }
   ];
 
+  const sessionStatsConfig = [
+    { label: 'Upcoming', value: sessionCounts.pending + sessionCounts.confirmed, color: 'bg-yellow-500/20', textColor: 'text-yellow-300', borderColor: 'border-yellow-500/30' },
+    { label: 'In Progress', value: sessionCounts.in_progress, color: 'bg-purple-500/20', textColor: 'text-purple-300', borderColor: 'border-purple-500/30' },
+    { label: 'Completed', value: sessionCounts.completed, color: 'bg-green-500/20', textColor: 'text-green-300', borderColor: 'border-green-500/30' },
+  ];
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/10 rounded-lg" />
-              <div className="flex-1">
-                <div className="h-8 bg-white/10 rounded w-16 mb-1" />
-                <div className="h-4 bg-white/10 rounded w-24" />
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-lg" />
+                <div className="flex-1">
+                  <div className="h-8 bg-white/10 rounded w-16 mb-1" />
+                  <div className="h-4 bg-white/10 rounded w-24" />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white/5 border border-white/10 rounded-lg p-3 animate-pulse">
+              <div className="h-6 bg-white/10 rounded w-8 mb-1 mx-auto" />
+              <div className="h-3 bg-white/10 rounded w-16 mx-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {statsConfig.map((stat, index) => (
-        <div
-          key={index}
-          className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 hover:bg-white/10 hover:border-purple-400/30 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] transition-all duration-300 transform group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex-shrink-0">
-              {stat.icon}
-            </div>
-            <div className="flex-1">
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-1 group-hover:text-purple-200 transition-colors duration-300">
-                {stat.value}
+    <div className="space-y-4">
+      {/* Main Stats */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {mainStatsConfig.map((stat, index) => (
+          <div
+            key={index}
+            className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 hover:bg-white/10 hover:border-purple-400/30 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] transition-all duration-300 transform group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 flex-shrink-0">
+                {stat.icon}
               </div>
-              <div className="text-white/60 text-xs sm:text-sm group-hover:text-white/80 transition-colors duration-300">
-                {stat.label}
+              <div className="flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-1 group-hover:text-purple-200 transition-colors duration-300">
+                  {stat.value}
+                </div>
+                <div className="text-white/60 text-xs sm:text-sm group-hover:text-white/80 transition-colors duration-300">
+                  {stat.label}
+                </div>
               </div>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Session Status Breakdown */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-sm group hover:border-purple-400/20 transition-all duration-500">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+        <div className="relative p-5 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-400/20">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#A684FF" strokeWidth="2" />
+                <line x1="16" y1="2" x2="16" y2="6" stroke="#A684FF" strokeWidth="2" />
+                <line x1="8" y1="2" x2="8" y2="6" stroke="#A684FF" strokeWidth="2" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="#A684FF" strokeWidth="2" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-white">Sessions by Status</h3>
+              <p className="text-xs text-white/50">Overview of all your session statuses</p>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            {sessionStatsConfig.map((stat, index) => (
+              <div
+                key={index}
+                className={`relative overflow-hidden rounded-xl ${stat.color} border ${stat.borderColor} p-4 sm:p-5 text-center group/card hover:scale-[1.03] hover:shadow-lg transition-all duration-300 cursor-default`}
+              >
+                {/* Glow effect */}
+                <div className={`absolute inset-0 ${stat.color} opacity-0 group-hover/card:opacity-50 blur-xl transition-opacity duration-300`} />
+
+                <div className="relative">
+                  <div className={`text-3xl sm:text-4xl font-bold ${stat.textColor} mb-1 drop-shadow-sm`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-white/70 text-sm font-medium">
+                    {stat.label}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      </div>
     </div>
   );
 };
+

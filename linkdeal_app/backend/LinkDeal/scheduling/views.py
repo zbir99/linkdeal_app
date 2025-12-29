@@ -188,6 +188,22 @@ class SessionListView(generics.ListAPIView):
             except MenteeProfile.DoesNotExist:
                 return Session.objects.none()
         
+        # Auto-update expired sessions: mark sessions as 'completed' if their 
+        # scheduled time (+ duration) has passed and they're still pending/confirmed
+        now = timezone.now()
+        expired_sessions = queryset.filter(
+            status__in=['pending', 'confirmed']
+        ).exclude(
+            scheduled_at__gt=now  # Exclude future sessions
+        )
+        
+        # Update expired sessions to 'completed'
+        for session in expired_sessions:
+            # Check if the session end time has passed
+            if session.end_time < now:
+                session.status = 'completed'
+                session.save(update_fields=['status', 'updated_at'])
+        
         # Apply filters
         status_filter = self.request.query_params.get('status')
         if status_filter:

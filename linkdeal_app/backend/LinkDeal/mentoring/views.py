@@ -419,8 +419,20 @@ class MentorMenteesStatsView(APIView):
             hours=Sum('total_hours')
         )
         
-        # Get average rating from sessions
+        # Get session counts by status
         from scheduling.models import Session
+        all_sessions = Session.objects.filter(mentor=mentor)
+        
+        session_counts = {
+            'pending': all_sessions.filter(status='pending').count(),
+            'confirmed': all_sessions.filter(status='confirmed').count(),
+            'in_progress': all_sessions.filter(status='in_progress').count(),
+            'completed': all_sessions.filter(status='completed').count(),
+            'cancelled': all_sessions.filter(status='cancelled').count(),
+            'no_show': all_sessions.filter(status='no_show').count(),
+        }
+        
+        # Get average rating from sessions
         avg_rating = Session.objects.filter(
             mentor=mentor, rating__isnull=False
         ).aggregate(avg=Avg('rating'))['avg']
@@ -432,9 +444,10 @@ class MentorMenteesStatsView(APIView):
             'total_sessions': totals['sessions'] or 0,
             'total_hours': totals['hours'] or Decimal('0'),
             'average_rating': round(avg_rating, 1) if avg_rating else None,
+            'session_counts': session_counts,
         }
         
-        return Response(MentorMenteesStatsSerializer(data).data)
+        return Response(data)
 
 
 # -------------------------------------------------------------------

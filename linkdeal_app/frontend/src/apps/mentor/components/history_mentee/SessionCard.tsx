@@ -3,11 +3,11 @@ import { FunctionComponent } from 'react';
 interface Session {
   id: string;
   title: string;
-  status: 'completed' | 'cancelled' | 'scheduled';
+  status: string;
   date: string;
   time: string;
   duration: string;
-  rating: number;
+  rating: number | null;
   topic: string;
   feedback: string;
 }
@@ -32,11 +32,27 @@ export const SessionCard: FunctionComponent<SessionCardProps> = ({ session }) =>
           </div>
         );
       case 'scheduled':
+      case 'pending':
+      case 'confirmed':
         return (
           <div className="px-3 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs">
-            Scheduled
+            Upcoming
           </div>
         );
+      case 'in_progress':
+        return (
+          <div className="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs">
+            In Progress
+          </div>
+        );
+      case 'no_show':
+        return (
+          <div className="px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-orange-300 text-xs">
+            No Show
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -49,21 +65,21 @@ export const SessionCard: FunctionComponent<SessionCardProps> = ({ session }) =>
             <h3 className="text-white text-xl font-normal">{session.title}</h3>
             {getStatusBadge()}
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-6 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="#A684FF" strokeWidth="2"/>
-                <line x1="16" y1="2" x2="16" y2="6" stroke="#A684FF" strokeWidth="2"/>
-                <line x1="8" y1="2" x2="8" y2="6" stroke="#A684FF" strokeWidth="2"/>
-                <line x1="3" y1="10" x2="21" y2="10" stroke="#A684FF" strokeWidth="2"/>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="#A684FF" strokeWidth="2" />
+                <line x1="16" y1="2" x2="16" y2="6" stroke="#A684FF" strokeWidth="2" />
+                <line x1="8" y1="2" x2="8" y2="6" stroke="#A684FF" strokeWidth="2" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="#A684FF" strokeWidth="2" />
               </svg>
               <span>{session.date}</span>
             </div>
             <div className="flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2"/>
-                <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="#A684FF" strokeWidth="2" />
+                <path d="M12 6v6l4 2" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span>{session.time} ({session.duration})</span>
             </div>
@@ -71,33 +87,38 @@ export const SessionCard: FunctionComponent<SessionCardProps> = ({ session }) =>
         </div>
 
         {/* Rating */}
-        <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center gap-1">
-          <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-          </svg>
-          <span className="text-white text-sm">{session.rating.toFixed(1)}</span>
-        </div>
+        {session.rating !== null && session.rating > 0 && (
+          <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center gap-1">
+            <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" />
+            </svg>
+            <span className="text-white text-sm">{session.rating.toFixed(1)}</span>
+          </div>
+        )}
       </div>
 
       {/* Topic */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-[#A684FF]">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span className="text-sm">Topic</span>
+      {session.topic && session.topic !== 'No topic specified' && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[#A684FF]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 17L12 22L22 17" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 12L12 17L22 12" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="text-sm">Topic</span>
+          </div>
+          <p className="text-white text-sm leading-6">{session.topic}</p>
         </div>
-        <p className="text-white text-sm leading-6">{session.topic}</p>
-      </div>
+      )}
 
       {/* Feedback */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
-        <div className="text-[#A684FF] text-sm">Feedback</div>
-        <p className="text-white/60 text-sm leading-snug">{session.feedback}</p>
-      </div>
+      {session.feedback && session.feedback !== 'No feedback provided' && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+          <div className="text-[#A684FF] text-sm">Notes / Feedback</div>
+          <p className="text-white/60 text-sm leading-snug">{session.feedback}</p>
+        </div>
+      )}
     </div>
   );
 };
-

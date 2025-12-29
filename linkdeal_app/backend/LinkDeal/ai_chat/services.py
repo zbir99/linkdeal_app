@@ -96,7 +96,8 @@ Return ONLY valid JSON with these fields:
                     *[{"role": m["role"], "content": m["content"]} for m in messages]
                 ],
                 temperature=0.8,
-                max_tokens=300
+                max_tokens=300,
+                timeout=25.0  # 25 second timeout to avoid broken pipe
             )
             
             return response.choices[0].message.content.strip()

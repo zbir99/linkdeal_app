@@ -299,15 +299,45 @@ class MentorMenteeRelationListSerializer(serializers.ModelSerializer):
     
     mentee = RelationMenteeSerializer(read_only=True)
     
+    # Use SerializerMethodFields to calculate live values from sessions
+    total_sessions = serializers.SerializerMethodField()
+    completed_sessions = serializers.SerializerMethodField()
+    total_hours = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
+    session_counts = serializers.SerializerMethodField()
     
     class Meta:
         model = MentorMenteeRelation
         fields = [
             'id', 'mentee', 'status',
             'total_sessions', 'completed_sessions', 'total_hours',
-            'last_session_at', 'started_at', 'average_rating'
+            'last_session_at', 'started_at', 'average_rating', 'session_counts'
         ]
+    
+    def get_total_sessions(self, obj):
+        from scheduling.models import Session
+        return Session.objects.filter(
+            mentor=obj.mentor,
+            mentee=obj.mentee
+        ).exclude(status='cancelled').count()
+    
+    def get_completed_sessions(self, obj):
+        from scheduling.models import Session
+        return Session.objects.filter(
+            mentor=obj.mentor,
+            mentee=obj.mentee,
+            status='completed'
+        ).count()
+    
+    def get_total_hours(self, obj):
+        from scheduling.models import Session
+        from django.db.models import Sum
+        total_minutes = Session.objects.filter(
+            mentor=obj.mentor,
+            mentee=obj.mentee,
+            status='completed'
+        ).aggregate(total=Sum('duration_minutes'))['total'] or 0
+        return round(total_minutes / 60, 1)
     
     def get_average_rating(self, obj):
         from scheduling.models import Session
@@ -317,6 +347,18 @@ class MentorMenteeRelationListSerializer(serializers.ModelSerializer):
             rating__isnull=False
         ).aggregate(avg=Avg('rating'))['avg']
         return round(avg, 1) if avg else None
+    
+    def get_session_counts(self, obj):
+        from scheduling.models import Session
+        sessions = Session.objects.filter(mentor=obj.mentor, mentee=obj.mentee)
+        return {
+            'pending': sessions.filter(status='pending').count(),
+            'confirmed': sessions.filter(status='confirmed').count(),
+            'in_progress': sessions.filter(status='in_progress').count(),
+            'completed': sessions.filter(status='completed').count(),
+            'cancelled': sessions.filter(status='cancelled').count(),
+            'no_show': sessions.filter(status='no_show').count(),
+        }
 
 
 class MentorMenteeRelationDetailSerializer(serializers.ModelSerializer):

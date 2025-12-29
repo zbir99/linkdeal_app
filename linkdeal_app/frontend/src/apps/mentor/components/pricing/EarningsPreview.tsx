@@ -1,4 +1,5 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useState, useEffect } from 'react';
+import api from '@/services/api';
 
 interface EarningsPreviewProps {
   hourlyRate: string;
@@ -16,8 +17,28 @@ const currencies: Record<string, string> = {
 };
 
 export const EarningsPreview: FunctionComponent<EarningsPreviewProps> = ({ hourlyRate, currency }) => {
+  const [platformFeePercentage, setPlatformFeePercentage] = useState<number>(10); // Default to 10%
+  const [loading, setLoading] = useState(true);
+
+  // Fetch platform fee from admin settings
+  useEffect(() => {
+    const fetchPlatformSettings = async () => {
+      try {
+        const response = await api.get('/api/settings/platform/');
+        const feePercentage = parseFloat(response.data.platform_fee_percentage) || 10;
+        setPlatformFeePercentage(feePercentage);
+      } catch (error) {
+        console.error('Failed to fetch platform settings:', error);
+        // Keep default 10% on error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlatformSettings();
+  }, []);
+
   const rate = parseFloat(hourlyRate) || 0;
-  const platformFee = rate * 0.10; // 10% platform fee
+  const platformFee = rate * (platformFeePercentage / 100);
   const earnings = rate - platformFee;
 
   const getCurrencySymbol = () => currencies[currency] || '$';
@@ -48,7 +69,9 @@ export const EarningsPreview: FunctionComponent<EarningsPreviewProps> = ({ hourl
 
         {/* Platform Fee */}
         <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-lg">
-          <span className="text-sm text-white/70">Platform Fee (10%)</span>
+          <span className="text-sm text-white/70">
+            Platform Fee ({loading ? '...' : `${platformFeePercentage}%`})
+          </span>
           <span className="text-base font-semibold text-red-400">-{formatCurrency(platformFee)}</span>
         </div>
 

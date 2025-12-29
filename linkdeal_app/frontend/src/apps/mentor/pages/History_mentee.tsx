@@ -22,10 +22,10 @@ const HistoryMentee: FunctionComponent = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         <HistoryHeader onBack={handleBack} menteeName={mentee?.name} />
-        
+
         <div className="space-y-4 sm:space-y-6">
           <MenteeProfileCard mentee={mentee} />
-          <SessionHistoryList />
+          <SessionHistoryList menteeId={mentee?.id} />
         </div>
       </div>
     </div>
