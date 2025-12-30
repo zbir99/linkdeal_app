@@ -1,20 +1,29 @@
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationHeader from '../components/notifications/NotificationHeader';
 import NotificationFilters from '../components/notifications/NotificationFilters';
 import NotificationList from '../components/notifications/NotificationList';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Notifications: FunctionComponent = () => {
   const navigate = useNavigate();
   const [markAllReadTrigger, setMarkAllReadTrigger] = useState(0);
 
+  // Use the notifications hook to get unread count
+  const { unreadCount, isLoading, markAllAsRead } = useNotifications();
+
   const handleBack = () => {
     navigate('/mentor/dashboard');
   };
 
-  const handleMarkAllRead = () => {
-    setMarkAllReadTrigger(prev => prev + 1);
-  };
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await markAllAsRead();
+      setMarkAllReadTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  }, [markAllAsRead]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#1a1a2e] to-[#2a1a3e] relative">
@@ -29,7 +38,12 @@ const Notifications: FunctionComponent = () => {
 
       <div className="relative z-10 px-4 sm:px-6 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
-          <NotificationHeader onBack={handleBack} onMarkAllRead={handleMarkAllRead} />
+          <NotificationHeader
+            onBack={handleBack}
+            onMarkAllRead={handleMarkAllRead}
+            unreadCount={unreadCount}
+            isLoading={isLoading}
+          />
           <NotificationFilters />
           <NotificationList markAllReadTrigger={markAllReadTrigger} />
         </div>
@@ -39,4 +53,3 @@ const Notifications: FunctionComponent = () => {
 };
 
 export default Notifications;
-

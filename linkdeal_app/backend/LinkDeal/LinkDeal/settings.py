@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'mentoring',
     'ai_chat',  # AI Chat & Mentor Matching
     'billing',  # Payment tracking
+    'notifications.apps.NotificationsConfig',  # Session reminders & in-app notifications
 ]
 
 MIDDLEWARE = [

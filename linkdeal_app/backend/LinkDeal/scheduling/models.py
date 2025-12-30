@@ -251,6 +251,12 @@ class Session(models.Model):
         help_text="Reference to payment in billing system"
     )
     
+    # Notification tracking
+    reminder_sent = models.BooleanField(
+        default=False,
+        help_text="Whether a 30-minute reminder has been sent"
+    )
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

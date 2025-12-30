@@ -1,75 +1,94 @@
 import { FunctionComponent, useState, useEffect } from 'react';
-
-interface Notification {
-  id: number;
-  type: 'message' | 'booking' | 'achievement' | 'reminder' | 'payment';
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  avatar?: string;
-}
+import notificationsService, { Notification } from '@/services/notifications';
 
 interface NotificationListProps {
   markAllReadTrigger?: number;
 }
 
 const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllReadTrigger }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-
-    {
-      id: 2,
-      type: 'booking',
-      title: 'Session Confirmed',
-      message: 'Your session with Jean Martin is confirmed for tomorrow at 2:00 PM',
-      time: '2 hours ago',
-      isRead: false
-    },
-
-    {
-      id: 5,
-      type: 'reminder',
-      title: 'Session Reminder',
-      message: 'Reminder: Session with Julie Petit starts in 1 hour',
-      time: '3 days ago',
-      isRead: true
-    },
-    {
-      id: 6,
-      type: 'payment',
-      title: 'Payment Received',
-      message: 'You received a payment of $50 for your recent session',
-      time: '4 days ago',
-      isRead: true
-    }
-  ]);
-
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const notificationsPerPage = 4;
 
-  const handleDeleteNotification = (id: number) => {
-    const updatedNotifications = notifications.filter(notification => notification.id !== id);
-    setNotifications(updatedNotifications);
-
-    // Adjust current page if necessary
-    const totalPages = Math.ceil(updatedNotifications.length / notificationsPerPage);
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
+  // Fetch notifications from API
+  const fetchNotifications = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await notificationsService.getNotifications();
+      setNotifications(data);
+    } catch (err: any) {
+      console.error('Error fetching notifications:', err);
+      setError(err.message || 'Échec du chargement des notifications');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleMarkAllReadInternal = () => {
-    setNotifications(notifications.map(notification => ({
-      ...notification,
-      isRead: true
-    })));
   };
 
   useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Mark all as read when triggered from parent
+  useEffect(() => {
     if (markAllReadTrigger && markAllReadTrigger > 0) {
-      handleMarkAllReadInternal();
+      handleMarkAllRead();
     }
   }, [markAllReadTrigger]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationsService.markAsRead(id);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationsService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await notificationsService.deleteNotification(id);
+      const updatedNotifications = notifications.filter(n => n.id !== id);
+      setNotifications(updatedNotifications);
+
+      const totalPages = Math.ceil(updatedNotifications.length / notificationsPerPage);
+      if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(totalPages);
+      }
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    }
+  };
+
+  // Map notification_type to display type
+  const mapNotificationType = (type: string): 'message' | 'booking' | 'achievement' | 'reminder' | 'payment' => {
+    switch (type) {
+      case 'session_reminder':
+        return 'reminder';
+      case 'session_confirmed':
+      case 'new_booking':
+        return 'booking';
+      case 'payment_received':
+        return 'payment';
+      case 'new_review':
+        return 'achievement';
+      default:
+        return 'message';
+    }
+  };
 
   const totalPages = Math.ceil(notifications.length / notificationsPerPage);
   const startIndex = (currentPage - 1) * notificationsPerPage;
@@ -81,12 +100,14 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
   };
 
   const getNotificationIcon = (type: string) => {
-    switch (type) {
+    const displayType = mapNotificationType(type);
+
+    switch (displayType) {
       case 'message':
         return (
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#7008E7" fillOpacity="0.2" />
-            <path d="M34 29C34 29.5304 33.7893 30.0391 33.4142 30.4142C33.0391 30.7893 32.5304 31 32 31H18.828C18.2976 31.0001 17.789 31.2109 17.414 31.586L15.212 33.788C15.1127 33.8873 14.9862 33.9549 14.8485 33.9823C14.7108 34.0097 14.568 33.9956 14.4383 33.9419C14.3086 33.8881 14.1977 33.7971 14.1197 33.6804C14.0417 33.5637 14.0001 33.4264 14.0001 33.286V17C14.0001 16.4696 14.2108 15.9609 14.5859 15.5858C14.9609 15.2107 15.4696 15 16.0001 15H32.0001C32.5305 15 33.0392 15.2107 33.4143 15.5858C33.7894 15.9609 34.0001 16.4696 34.0001 17V29H34Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M34 29C34 29.5304 33.7893 30.0391 33.4142 30.4142C33.0391 30.7893 32.5304 31 32 31H18.828C18.2976 31.0001 17.789 31.2109 17.414 31.586L15.212 33.788C15.1127 33.8873 14.9862 33.9549 14.8485 33.9823C14.7108 34.0097 14.568 33.9956 14.4383 33.9419C14.3086 33.8881 14.1977 33.7971 14.1197 33.6804C14.0417 33.5637 14 33.4264 14 33.286V17C14 16.4696 14.2107 15.9609 14.5858 15.5858C14.9609 15.2107 15.4696 15 16 15H32C32.5304 15 33.0391 15.2107 33.4142 15.5858C33.7893 15.9609 34 16.4696 34 17V29Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       case 'booking':
@@ -121,107 +142,157 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        </div>
+        <h3 className="text-xl text-white font-medium mb-2">Erreur de chargement</h3>
+        <p className="text-gray-400 text-sm mb-4">{error}</p>
+        <button
+          onClick={fetchNotifications}
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (notifications.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.6914 28C13.9255 28.4054 14.2621 28.742 14.6675 28.976C15.0728 29.21 15.5327 29.3332 16.0007 29.3332C16.4688 29.3332 16.9286 29.21 17.334 28.976C17.7394 28.742 18.076 28.4054 18.3101 28" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4.35031 20.4345C4.17613 20.6254 4.06118 20.8628 4.01945 21.1179C3.97772 21.3729 4.011 21.6346 4.11525 21.871C4.2195 22.1075 4.39023 22.3086 4.60665 22.4498C4.82308 22.591 5.07588 22.6663 5.33431 22.6665H26.6676C26.926 22.6666 27.1789 22.5916 27.3955 22.4506C27.612 22.3097 27.783 22.1088 27.8875 21.8725C27.992 21.6362 28.0256 21.3746 27.9842 21.1196C27.9428 20.8645 27.8282 20.627 27.6543 20.4358C25.881 18.6078 24.001 16.6652 24.001 10.6665C24.001 8.54477 23.1581 6.50994 21.6578 5.00965C20.1575 3.50936 18.1227 2.6665 16.001 2.6665C13.8792 2.6665 11.8444 3.50936 10.3441 5.00965C8.84383 6.50994 8.00098 8.54477 8.00098 10.6665C8.00098 16.6652 6.11965 18.6078 4.35031 20.4345Z" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <h3 className="text-xl text-white font-medium mb-2">Aucune notification</h3>
+        <p className="text-gray-400 text-sm">Vous êtes à jour ! Aucune nouvelle notification.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {notifications.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.6914 28C13.9255 28.4054 14.2621 28.742 14.6675 28.976C15.0728 29.21 15.5327 29.3332 16.0007 29.3332C16.4688 29.3332 16.9286 29.21 17.334 28.976C17.7394 28.742 18.076 28.4054 18.3101 28" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4.35031 20.4345C4.17613 20.6254 4.06118 20.8628 4.01945 21.1179C3.97772 21.3729 4.011 21.6346 4.11525 21.871C4.2195 22.1075 4.39023 22.3086 4.60665 22.4498C4.82308 22.591 5.07588 22.6663 5.33431 22.6665H26.6676C26.926 22.6666 27.1789 22.5916 27.3955 22.4506C27.612 22.3097 27.783 22.1088 27.8875 21.8725C27.992 21.6362 28.0256 21.3746 27.9842 21.1196C27.9428 20.8645 27.8282 20.627 27.6543 20.4358C25.881 18.6078 24.001 16.6652 24.001 10.6665C24.001 8.54477 23.1581 6.50994 21.6578 5.00965C20.1575 3.50936 18.1227 2.6665 16.001 2.6665C13.8792 2.6665 11.8444 3.50936 10.3441 5.00965C8.84383 6.50994 8.00098 8.54477 8.00098 10.6665C8.00098 16.6652 6.11965 18.6078 4.35031 20.4345Z" stroke="#A684FF" strokeWidth="2.66667" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+      {currentNotifications.map((notification) => (
+        <div
+          key={notification.id}
+          onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
+          className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${!notification.is_read
+            ? 'bg-[#7008E7]/10 border-[#7008E7]/30 hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-[#7008E7]/20'
+            : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-white/10'
+            }`}
+        >
+          <div className="flex gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center flex-shrink-0">
+              {getNotificationIcon(notification.notification_type)}
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-4 mb-1">
+                <h3 className="text-lg text-white font-inter">
+                  {notification.title}
+                </h3>
+                {!notification.is_read && (
+                  <div className="w-2 h-2 rounded-full bg-[#A684FF] flex-shrink-0 mt-2 hover:scale-150 transition-all duration-300 cursor-pointer" />
+                )}
+              </div>
+              <p className="text-gray-400 text-sm mb-2">
+                {notification.message}
+              </p>
+
+              {/* Link button if available */}
+              {notification.link && (
+                <a
+                  href={notification.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#7008E7] to-[#9B4DFF] text-white text-sm rounded-lg hover:opacity-90 transition-opacity mb-2"
+                >
+                  🎥 {notification.link_text || 'Rejoindre'}
+                </a>
+              )}
+
+              <p className="text-gray-500 text-xs">
+                {notification.time_ago}
+              </p>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteNotification(notification.id);
+              }}
+              className="w-5 h-5 text-gray-400 hover:text-white transition-colors duration-300 flex-shrink-0"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
-          <h3 className="text-xl text-white font-medium mb-2">No notifications exist</h3>
-          <p className="text-gray-400 text-sm">You're all caught up! No new notifications to show.</p>
         </div>
-      ) : (
-        <>
-          {currentNotifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${!notification.isRead
-                ? 'bg-[#7008E7]/10 border-[#7008E7]/30 hover:bg-[#7008E7]/20 hover:border-[#7008E7]/50 hover:shadow-[#7008E7]/20'
-                : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-white/10'
+      ))}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 pt-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === 1
+              ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+              : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+              }`}
+          >
+            ←
+          </button>
+
+          {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === page
+                ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
+                : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
                 }`}
             >
-              <div className="flex gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center flex-shrink-0">
-                  {getNotificationIcon(notification.type)}
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4 mb-1">
-                    <h3 className="text-lg text-white font-inter">
-                      {notification.title}
-                    </h3>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 rounded-full bg-[#A684FF] flex-shrink-0 mt-2 hover:scale-150 transition-all duration-300 cursor-pointer" />
-                    )}
-                  </div>
-                  <p className="text-gray-400 text-sm mb-2">
-                    {notification.message}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    {notification.time}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => handleDeleteNotification(notification.id)}
-                  className="w-5 h-5 text-gray-400 hover:text-white transition-colors duration-300 flex-shrink-0"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+              {page}
+            </button>
           ))}
 
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 pt-4">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === 1
-                  ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                  : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                  }`}
-              >
-                ←
-              </button>
-
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === page
-                    ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
-                    : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                    }`}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === totalPages
-                  ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                  : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                  }`}
-              >
-                →
-              </button>
-            </div>
-          )}
-        </>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${currentPage === totalPages
+              ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+              : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+              }`}
+          >
+            →
+          </button>
+        </div>
       )}
     </div>
   );
 };
 
 export default NotificationList;
-

@@ -5,6 +5,7 @@ Handles serialization/deserialization of session and availability data.
 from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
+from datetime import timedelta
 
 from scheduling.models import (
     SessionType,
@@ -246,7 +247,40 @@ class SessionCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        # TODO: Check mentor availability for the requested time slot
+        """
+        Check that no other active session exists for this mentor at the requested time.
+        Prevents double booking by detecting time slot overlaps.
+        Uses select_for_update() to prevent race conditions on concurrent bookings.
+        """
+        mentor = data.get('mentor_id')  # This is already validated to MentorProfile
+        scheduled_at = data.get('scheduled_at')
+        duration = data.get('duration_minutes', 60)
+        
+        # Calculate session end time
+        session_end_time = scheduled_at + timedelta(minutes=duration)
+        
+        # Check for overlapping sessions
+        # A session overlaps if:
+        #   - It starts before our session ends, AND
+        #   - It ends after our session starts
+        # 
+        # select_for_update() locks these rows to prevent race conditions
+        # when two users try to book the same slot simultaneously
+        conflicting_sessions = Session.objects.select_for_update().filter(
+            mentor=mentor,
+            scheduled_at__date=scheduled_at.date(),  # Only lock sessions on the same day
+            status__in=['pending', 'confirmed', 'in_progress']
+        )
+        
+        for existing_session in conflicting_sessions:
+            existing_end = existing_session.scheduled_at + timedelta(minutes=existing_session.duration_minutes)
+            
+            # Check overlap: sessions overlap if one starts before the other ends
+            if (scheduled_at < existing_end) and (session_end_time > existing_session.scheduled_at):
+                raise serializers.ValidationError({
+                    'scheduled_at': f"Ce créneau est déjà réservé. Une session existe de {existing_session.scheduled_at.strftime('%H:%M')} à {existing_end.strftime('%H:%M')}."
+                })
+        
         return data
     
     @transaction.atomic
@@ -283,6 +317,53 @@ class SessionCreateSerializer(serializers.ModelSerializer):
             mentee=mentee_profile,
             defaults={'status': 'active'}
         )
+        
+        # === SEND BOOKING NOTIFICATIONS ===
+        try:
+            from notifications.models import Notification
+            from notifications.email_service import NotificationEmailService
+            
+            session_time = session.scheduled_at.strftime("%H:%M")
+            session_date = session.scheduled_at.strftime("%d/%m/%Y")
+            
+            # Notification for MENTOR (new booking request)
+            Notification.objects.create(
+                recipient=mentor.user,
+                notification_type='new_booking',
+                title="Nouvelle demande de session",
+                message=f"{mentee_profile.full_name} a réservé une session le {session_date} à {session_time}. "
+                        f"Durée : {session.duration_minutes} minutes.",
+                link_text="Voir les détails",
+                related_session=session,
+                email_sent=True
+            )
+            NotificationEmailService.send_booking_confirmation(
+                user=mentor.user,
+                session=session,
+                is_mentor=True
+            )
+            
+            # Notification for MENTEE (booking confirmation)
+            Notification.objects.create(
+                recipient=mentee_profile.user,
+                notification_type='session_confirmed',
+                title="Réservation confirmée",
+                message=f"Votre session avec {mentor.full_name} a été réservée pour le {session_date} à {session_time}. "
+                        f"Vous recevrez un rappel 30 minutes avant.",
+                link_text="Voir les détails",
+                related_session=session,
+                email_sent=True
+            )
+            NotificationEmailService.send_booking_confirmation(
+                user=mentee_profile.user,
+                session=session,
+                is_mentor=False
+            )
+        except Exception as e:
+            # Log error but don't fail the booking
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send booking notifications: {e}")
         
         return session
 

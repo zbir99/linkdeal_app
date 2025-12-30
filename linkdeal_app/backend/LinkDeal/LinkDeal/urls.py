@@ -27,6 +27,7 @@ urlpatterns = [
     path('ai/', include('ai_chat.urls')),  # AI Chat endpoints
     path('api/', include('core.urls')),  # Core platform settings
     path('billing/', include('billing.urls')),  # Billing/payments
+    path('notifications/', include('notifications.urls')),  # Notifications & reminders
 ]
 
 if settings.DEBUG:
