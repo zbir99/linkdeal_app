@@ -1,8 +1,11 @@
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent } from 'react';
 
-const NotificationFilters: FunctionComponent = () => {
-  const [activeFilter, setActiveFilter] = useState('All');
+interface NotificationFiltersProps {
+  activeFilter: string;
+  onFilterChange: (filter: string) => void;
+}
 
+const NotificationFilters: FunctionComponent<NotificationFiltersProps> = ({ activeFilter, onFilterChange }) => {
   const filters = [
     { name: 'All', count: 0 },
     { name: 'Booking', count: 0 },
@@ -14,10 +17,10 @@ const NotificationFilters: FunctionComponent = () => {
       {filters.map((filter) => (
         <button
           key={filter.name}
-          onClick={() => setActiveFilter(filter.name)}
+          onClick={() => onFilterChange(filter.name)}
           className={`px-4 py-2 rounded-lg text-sm font-arimo transition-all duration-300 ${activeFilter === filter.name
-              ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
-              : 'bg-white/5 border border-white/20 text-gray-400 hover:bg-white/10 hover:text-white'
+            ? 'bg-[#7008E7] text-white shadow-lg shadow-[#7008E7]/30'
+            : 'bg-white/5 border border-white/20 text-gray-400 hover:bg-white/10 hover:text-white'
             }`}
         >
           {filter.name}
@@ -33,4 +36,3 @@ const NotificationFilters: FunctionComponent = () => {
 };
 
 export default NotificationFilters;
-

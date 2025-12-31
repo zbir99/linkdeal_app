@@ -257,6 +257,9 @@ class MentorProfileMeView(APIView):
                 "status": mentor_profile.status,
                 "session_rate": str(mentor_profile.session_rate),
                 "wallet_balance": str(mentor_profile.wallet_balance or 0),
+                "bank_name": mentor_profile.bank_name,
+                "iban": mentor_profile.iban,
+                "swift_bic": mentor_profile.swift_bic,
             })
             # Prevent browser caching of profile data
             response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -325,6 +328,14 @@ class MentorProfileMeView(APIView):
                         {"error": "Invalid session rate value"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+
+            # Handle Banking Information update
+            if 'bank_name' in request.data:
+                mentor_profile.bank_name = request.data['bank_name']
+            if 'iban' in request.data:
+                mentor_profile.iban = request.data['iban']
+            if 'swift_bic' in request.data:
+                mentor_profile.swift_bic = request.data['swift_bic']
             
             mentor_profile.save()
             
@@ -349,6 +360,9 @@ class MentorProfileMeView(APIView):
                 "linkedin_url": mentor_profile.linkedin_url,
                 "status": mentor_profile.status,
                 "session_rate": str(mentor_profile.session_rate),
+                "bank_name": mentor_profile.bank_name,
+                "iban": mentor_profile.iban,
+                "swift_bic": mentor_profile.swift_bic,
             })
         except AppUser.DoesNotExist:
             return Response(

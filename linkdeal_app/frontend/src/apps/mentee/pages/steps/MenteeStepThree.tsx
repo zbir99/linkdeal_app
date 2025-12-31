@@ -69,7 +69,11 @@ export const MenteeStepThree = (): JSX.Element => {
                 registerData.password = signupData.password;
                 registerData.password_confirm = signupData.password;
             } else {
-                // Add social picture URL for social auth users
+                // For social auth: Include uploaded profile picture file if user uploaded one
+                if (signupData.profile_picture) {
+                    registerData.profile_picture = signupData.profile_picture;
+                }
+                // Also add social picture URL as fallback (from Google/LinkedIn)
                 const socialPicture = sessionStorage.getItem('social_auth_picture');
                 if (socialPicture) {
                     registerData.social_picture_url = socialPicture;

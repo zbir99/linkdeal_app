@@ -1,10 +1,14 @@
 import { FunctionComponent } from 'react';
 
-const TotalPayouts: FunctionComponent = () => {
+interface TotalPayoutsProps {
+  totalAmount: string;
+}
+
+const TotalPayouts: FunctionComponent<TotalPayoutsProps> = ({ totalAmount }) => {
   const cards = [
     {
       label: 'Total Payouts',
-      value: '€450',
+      value: `$${totalAmount}`,
       icon: (
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 12C0 5.37258 5.37258 0 12 0H36C42.6274 0 48 5.37258 48 12V36C48 42.6274 42.6274 48 36 48H12C5.37258 48 0 42.6274 0 36V12Z" fill="#7008E7" fillOpacity="0.2" />

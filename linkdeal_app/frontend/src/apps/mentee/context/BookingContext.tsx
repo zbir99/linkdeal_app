@@ -21,6 +21,8 @@ interface TimeSlot {
     day_name: string;
     start_time: string;
     end_time: string;
+    is_available?: boolean;
+    booked_until?: string | null;
 }
 
 interface BookingData {

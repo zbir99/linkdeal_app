@@ -183,7 +183,17 @@ export const MenteesList: FunctionComponent<MenteesListProps> = ({
                 <img
                   src={mentee.mentee.profile_picture_url || mentee.mentee.social_picture_url || ''}
                   alt={mentee.mentee.full_name}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-110 transition-all duration-300"
+                  onError={(e) => {
+                    // Hide broken image and show initials fallback
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<span class="text-white text-sm sm:text-base md:text-lg font-semibold">${getInitials(mentee.mentee.full_name)}</span>`;
+                    }
+                  }}
                 />
               ) : (
                 <span className="text-white text-sm sm:text-base md:text-lg font-semibold">

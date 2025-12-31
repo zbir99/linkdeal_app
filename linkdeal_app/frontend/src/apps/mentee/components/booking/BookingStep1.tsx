@@ -1,20 +1,37 @@
 import { FunctionComponent, useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { useBooking } from '../../context/BookingContext';
+import api from '@/services/api';
 
 interface BookingStep1Props {
   onContinue: () => void;
 }
 
+interface DateBasedSlot {
+  day_of_week: number;
+  day_name: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  booked_until: string | null;
+}
+
 const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
+  const { mentorId } = useParams<{ mentorId: string }>();
   const {
     availableSlots,
     selectedDate,
     selectedTime,
     sessionTopic,
+    mentor,
     setSelectedDate,
     setSelectedTime,
     setSessionTopic
   } = useBooking();
+
+  // State for date-specific slots with availability info
+  const [dateBasedSlots, setDateBasedSlots] = useState<DateBasedSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // Infinite scroll date picker - start with 30 days
   const [daysToShow, setDaysToShow] = useState(30);
@@ -58,9 +75,46 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
     }
   }, []);
 
-  // Memoize time slots to prevent infinite loop - only show available slots, no fallback
+  // Fetch date-specific availability when date is selected
+  useEffect(() => {
+    const fetchDateAvailability = async () => {
+      const id = mentorId || mentor?.id;
+      if (!selectedDate || !id) return;
+
+      setIsLoadingSlots(true);
+      try {
+        const dateStr = selectedDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        const response = await api.get(`scheduling/mentors/${id}/availability/?date=${dateStr}`);
+        setDateBasedSlots(response.data.slots || []);
+      } catch (error) {
+        console.error('Error fetching date-specific availability:', error);
+        setDateBasedSlots([]);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+
+    fetchDateAvailability();
+  }, [selectedDate, mentorId, mentor?.id]);
+
+  // Memoize time slots - include availability info for each slot
   const timeSlots = useMemo(() => {
-    if (!selectedDate || availableSlots.length === 0) {
+    if (!selectedDate) {
+      return [];
+    }
+
+    // If we have date-based slots (from API with date param), use those
+    if (dateBasedSlots.length > 0) {
+      // Each slot from backend is already per-hour, just map them
+      return dateBasedSlots.map(slot => ({
+        time: slot.start_time,
+        isAvailable: slot.is_available,
+        bookedUntil: slot.booked_until
+      }));
+    }
+
+    // Fallback to basic slots (without date-specific availability check)
+    if (availableSlots.length === 0) {
       return [];
     }
 
@@ -73,17 +127,21 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
       return [];
     }
 
-    const slots: string[] = [];
+    const slots: { time: string; isAvailable: boolean; bookedUntil: string | null }[] = [];
     slotsForDay.forEach(slot => {
       const startHour = parseInt(slot.start_time.split(':')[0]);
       const endHour = parseInt(slot.end_time.split(':')[0]);
       for (let hour = startHour; hour < endHour; hour++) {
-        slots.push(`${hour.toString().padStart(2, '0')}:00`);
+        slots.push({
+          time: `${hour.toString().padStart(2, '0')}:00`,
+          isAvailable: true,
+          bookedUntil: null
+        });
       }
     });
 
     return slots;
-  }, [selectedDate, availableSlots]);
+  }, [selectedDate, availableSlots, dateBasedSlots]);
 
   // Set default date to first available date
   useEffect(() => {
@@ -99,8 +157,10 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
 
   // Set default time when date changes or time is invalid
   useEffect(() => {
-    if (timeSlots.length > 0 && (!selectedTime || !timeSlots.includes(selectedTime))) {
-      setSelectedTime(timeSlots[0]);
+    const availableTimeSlots = timeSlots.filter(s => s.isAvailable);
+    const currentTimeStillValid = timeSlots.some(s => s.time === selectedTime && s.isAvailable);
+    if (availableTimeSlots.length > 0 && (!selectedTime || !currentTimeStillValid)) {
+      setSelectedTime(availableTimeSlots[0].time);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, timeSlots.length]);
@@ -168,10 +228,10 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
                       onClick={() => isAvailable && setSelectedDate(date)}
                       disabled={!isAvailable}
                       className={`group relative min-w-[72px] h-[88px] rounded-xl border-2 backdrop-blur-md flex flex-col items-center justify-center gap-0.5 transition-all duration-300 overflow-hidden ${!isAvailable
-                          ? 'bg-white/[0.02] border-white/5 cursor-not-allowed opacity-40'
-                          : isSelected
-                            ? 'bg-gradient-to-br from-[#7008E7] to-[#9B4DFF] border-transparent shadow-lg shadow-[#7008E7]/40 scale-105'
-                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#7008E7]/30 hover:scale-102'
+                        ? 'bg-white/[0.02] border-white/5 cursor-not-allowed opacity-40'
+                        : isSelected
+                          ? 'bg-gradient-to-br from-[#7008E7] to-[#9B4DFF] border-transparent shadow-lg shadow-[#7008E7]/40 scale-105'
+                          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#7008E7]/30 hover:scale-102'
                         }`}
                     >
                       {/* Glow effect for selected */}
@@ -216,22 +276,30 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
             </svg>
             Preferred Time
           </label>
-          {timeSlots.length > 0 ? (
+          {isLoadingSlots ? (
+            <div className="w-full rounded-lg bg-white/5 border border-white/20 p-4 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-[#7008E7] border-t-transparent rounded-full animate-spin mr-2"></div>
+              <span className="text-gray-400">Loading available times...</span>
+            </div>
+          ) : timeSlots.length > 0 ? (
             <div className="w-full">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {timeSlots.map((time) => (
+                {timeSlots.map((slot) => (
                   <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={`h-[56px] rounded-lg border-[0.8px] backdrop-blur-md flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105 ${selectedTime === time
-                      ? 'bg-[#7008E7]/30 border-[#7008E7]/50'
-                      : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30'
+                    key={slot.time}
+                    onClick={() => slot.isAvailable && setSelectedTime(slot.time)}
+                    disabled={!slot.isAvailable}
+                    className={`h-[56px] rounded-lg border-[0.8px] backdrop-blur-md flex flex-col items-center justify-center gap-1 transition-all duration-300 ${!slot.isAvailable
+                        ? 'bg-red-500/10 border-red-500/20 cursor-not-allowed opacity-50'
+                        : selectedTime === slot.time
+                          ? 'bg-[#7008E7]/30 border-[#7008E7]/50 hover:scale-105'
+                          : 'bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30 hover:scale-105'
                       }`}
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <g clipPath="url(#clip0_161_9402)">
-                        <path d="M8 4V8L10.6667 9.33333" stroke="#A684FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M7.99967 14.6663C11.6816 14.6663 14.6663 11.6816 14.6663 7.99967C14.6663 4.31778 11.6816 1.33301 7.99967 1.33301C4.31778 1.33301 1.33301 4.31778 1.33301 7.99967C1.33301 11.6816 4.31778 14.6663 7.99967 14.6663Z" stroke="#A684FF" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M8 4V8L10.6667 9.33333" stroke={slot.isAvailable ? "#A684FF" : "#EF4444"} strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M7.99967 14.6663C11.6816 14.6663 14.6663 11.6816 14.6663 7.99967C14.6663 4.31778 11.6816 1.33301 7.99967 1.33301C4.31778 1.33301 1.33301 4.31778 1.33301 7.99967C1.33301 11.6816 4.31778 14.6663 7.99967 14.6663Z" stroke={slot.isAvailable ? "#A684FF" : "#EF4444"} strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
                       </g>
                       <defs>
                         <clipPath id="clip0_161_9402">
@@ -239,7 +307,12 @@ const BookingStep1: FunctionComponent<BookingStep1Props> = ({ onContinue }) => {
                         </clipPath>
                       </defs>
                     </svg>
-                    <span className="text-[14px] font-arimo leading-[21px] text-white">{time}</span>
+                    <span className={`text-[14px] font-arimo leading-[21px] ${slot.isAvailable ? 'text-white' : 'text-red-400 line-through'}`}>
+                      {slot.time}
+                    </span>
+                    {!slot.isAvailable && (
+                      <span className="text-[10px] text-red-400 -mt-1">Booked</span>
+                    )}
                   </button>
                 ))}
               </div>

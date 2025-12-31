@@ -263,12 +263,9 @@ class SessionCreateSerializer(serializers.ModelSerializer):
         # A session overlaps if:
         #   - It starts before our session ends, AND
         #   - It ends after our session starts
-        # 
-        # select_for_update() locks these rows to prevent race conditions
-        # when two users try to book the same slot simultaneously
-        conflicting_sessions = Session.objects.select_for_update().filter(
+        conflicting_sessions = Session.objects.filter(
             mentor=mentor,
-            scheduled_at__date=scheduled_at.date(),  # Only lock sessions on the same day
+            scheduled_at__date=scheduled_at.date(),
             status__in=['pending', 'confirmed', 'in_progress']
         )
         

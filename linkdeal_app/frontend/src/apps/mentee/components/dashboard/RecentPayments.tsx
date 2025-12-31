@@ -1,29 +1,44 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../../../services/api';
+
+interface Payment {
+  id: string;
+  mentor: string;
+  amount: string;
+  time: string;
+  type: string;
+}
 
 const RecentPayments: FunctionComponent = () => {
   const navigate = useNavigate();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const payments = [
-    {
-      mentor: 'Marie Dupont',
-      amount: '$400',
-      time: '1h ago',
-      type: 'paid'
-    },
-    {
-      mentor: 'AI Coach',
-      amount: 'free',
-      time: '3h ago',
-      type: 'free'
-    },
-    {
-      mentor: 'John Smith',
-      amount: '$329',
-      time: '1d ago',
-      type: 'paid'
-    }
-  ];
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const response = await api.get('/billing/payments/list/?limit=3');
+        if (response.data.success) {
+          // Map API data to UI format
+          const mappedPayments = response.data.data.map((p: any) => ({
+            id: p.id,
+            mentor: p.mentor_name,
+            amount: p.amount === '0.00' ? 'Free' : `$${p.amount}`,
+            time: p.time_ago,
+            type: p.amount === '0.00' ? 'free' : 'paid'
+          }));
+          setPayments(mappedPayments);
+        }
+      } catch (error) {
+        console.error('Failed to fetch recent payments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
 
   return (
     <div className="rounded-2xl bg-white bg-opacity-5 border border-white border-opacity-10 backdrop-blur-md p-6">
@@ -60,24 +75,30 @@ const RecentPayments: FunctionComponent = () => {
       </div>
 
       <div className="space-y-3">
-        {payments.map((payment, index) => (
-          <div
-            key={index}
-            className="rounded-xl bg-white/5 border border-white/10 p-4 flex flex-col gap-1 hover:bg-white/10 hover:border-white/20 hover:shadow-xl hover:shadow-purple-500/10 hover:scale-[1.02] transition-all duration-300 ease-out"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-white font-arimo">
-                {payment.mentor}
-              </h3>
-              <span className="text-xs text-gray-500">
-                {payment.time}
-              </span>
+        {loading ? (
+          <div className="text-center py-4 text-gray-400 text-sm">Loading payments...</div>
+        ) : payments.length > 0 ? (
+          payments.map((payment, index) => (
+            <div
+              key={index}
+              className="rounded-xl bg-white/5 border border-white/10 p-4 flex flex-col gap-1 hover:bg-white/10 hover:border-white/20 hover:shadow-xl hover:shadow-purple-500/10 hover:scale-[1.02] transition-all duration-300 ease-out"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm text-white font-arimo">
+                  {payment.mentor}
+                </h3>
+                <span className="text-xs text-gray-500">
+                  {payment.time}
+                </span>
+              </div>
+              <div className={`text-sm font-arimo ${payment.type === 'free' ? 'text-[#99A1AF]' : 'text-gray-300'}`}>
+                {payment.amount}
+              </div>
             </div>
-            <div className={`text-sm font-arimo ${payment.type === 'free' ? 'text-[#99A1AF]' : 'text-gray-300'}`}>
-              {payment.amount}
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <div className="text-center py-4 text-gray-400 text-sm">No recent payments</div>
+        )}
       </div>
     </div>
   );

@@ -570,7 +570,16 @@ const UserTable: FunctionComponent<UserTableProps> = ({ searchTerm, selectedRole
                             <img
                               src={user.profile_picture_url || user.social_picture_url}
                               alt={user.name}
+                              crossOrigin="anonymous"
+                              referrerPolicy="no-referrer"
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span class="text-white text-sm font-medium">${user.initials}</span>`;
+                                }
+                              }}
                             />
                           ) : (
                             <span className="text-white text-sm font-medium">{user.initials}</span>

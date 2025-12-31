@@ -8,6 +8,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 const Notifications: FunctionComponent = () => {
   const navigate = useNavigate();
   const [markAllReadTrigger, setMarkAllReadTrigger] = useState(0);
+  const [activeFilter, setActiveFilter] = useState('All');
 
   // Use the notifications hook to get unread count
   const { unreadCount, isLoading, markAllAsRead } = useNotifications();
@@ -44,8 +45,8 @@ const Notifications: FunctionComponent = () => {
             unreadCount={unreadCount}
             isLoading={isLoading}
           />
-          <NotificationFilters />
-          <NotificationList markAllReadTrigger={markAllReadTrigger} />
+          <NotificationFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+          <NotificationList markAllReadTrigger={markAllReadTrigger} activeFilter={activeFilter} />
         </div>
       </div>
     </div>
@@ -53,3 +54,4 @@ const Notifications: FunctionComponent = () => {
 };
 
 export default Notifications;
+

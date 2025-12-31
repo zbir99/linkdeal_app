@@ -34,7 +34,19 @@ const BookingSummary: FunctionComponent<BookingSummaryProps> = () => {
               <img
                 src={mentor.profile_picture_url}
                 alt={mentor.full_name}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 className="h-12 w-12 rounded-full object-cover hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = 'h-12 w-12 rounded-full bg-[#7008E7] flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50';
+                    fallbackDiv.innerHTML = `<span class="text-white text-lg font-inter leading-6">${getInitials(mentor.full_name)}</span>`;
+                    parent.insertBefore(fallbackDiv, e.currentTarget);
+                  }
+                }}
               />
             ) : (
               <div className="h-12 w-12 rounded-full bg-[#7008E7] flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50">

@@ -3,9 +3,10 @@ import notificationsService, { Notification } from '@/services/notifications';
 
 interface NotificationListProps {
   markAllReadTrigger?: number;
+  activeFilter?: string;
 }
 
-const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllReadTrigger }) => {
+const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllReadTrigger, activeFilter = 'All' }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +38,11 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
       handleMarkAllRead();
     }
   }, [markAllReadTrigger]);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -90,10 +96,21 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
     }
   };
 
-  const totalPages = Math.ceil(notifications.length / notificationsPerPage);
+  // Filter notifications based on active filter
+  const filteredNotifications = notifications.filter(notification => {
+    if (activeFilter === 'All') return true;
+
+    const type = mapNotificationType(notification.notification_type);
+    if (activeFilter === 'Booking') return type === 'booking' || type === 'reminder';
+    if (activeFilter === 'Payment') return type === 'payment';
+    if (activeFilter === 'Unread') return !notification.is_read;
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredNotifications.length / notificationsPerPage);
   const startIndex = (currentPage - 1) * notificationsPerPage;
   const endIndex = startIndex + notificationsPerPage;
-  const currentNotifications = notifications.slice(startIndex, endIndex);
+  const currentNotifications = filteredNotifications.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -175,7 +192,7 @@ const NotificationList: FunctionComponent<NotificationListProps> = ({ markAllRea
   }
 
   // Empty state
-  if (notifications.length === 0) {
+  if (filteredNotifications.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">

@@ -80,7 +80,19 @@ const BookingStep4: FunctionComponent<BookingStep4Props> = () => {
               <img
                 src={mentor.profile_picture_url}
                 alt={mentor.full_name}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 className="w-14 h-14 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = 'w-14 h-14 rounded-full bg-[#7008E7] flex items-center justify-center';
+                    fallbackDiv.innerHTML = `<span class="text-white font-inter text-lg">${mentor.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}</span>`;
+                    parent.insertBefore(fallbackDiv, e.currentTarget);
+                  }
+                }}
               />
             ) : (
               <div className="w-14 h-14 rounded-full bg-[#7008E7] flex items-center justify-center">

@@ -1,65 +1,29 @@
 import { FunctionComponent } from 'react';
 
-interface TransactionTableProps {
-  searchQuery: string;
-  filterType: string;
-  onClearSearch?: () => void;
+interface Transaction {
+  id: string;
+  date: string;
+  description: string;
+  method: string;
+  type: string;
+  status: string;
 }
 
-const TransactionTable: FunctionComponent<TransactionTableProps> = ({ searchQuery, filterType, onClearSearch }) => {
-  const allTransactions = [
-    {
-      id: 'PAY-2024-001',
-      date: 'Nov 22, 2024',
-      description: 'Session with Sophie Martin',
-      method: 'Credit Card',
-      type: 'Income',
-      status: 'Completed'
-    },
-    {
-      id: 'PAY-2024-002',
-      date: 'Nov 20, 2024',
-      description: 'Session with Thomas Bernard',
-      method: 'PayPal',
-      type: 'Income',
-      status: 'Completed'
-    },
-    {
-      id: 'PAY-2024-003',
-      date: 'Nov 18, 2024',
-      description: 'Bank Transfer',
-      method: 'Wire Transfer',
-      type: 'Payout',
-      status: 'Completed'
-    },
-    {
-      id: 'PAY-2024-004',
-      date: 'Nov 15, 2024',
-      description: 'Session with Julie Petit',
-      method: 'Credit Card',
-      type: 'Income',
-      status: 'Completed'
-    },
-    {
-      id: 'PAY-2024-005',
-      date: 'Nov 12, 2024',
-      description: 'Session with Marc Durand',
-      method: 'PayPal',
-      type: 'Income',
-      status: 'Pending'
-    }
-  ];
+interface TransactionTableProps {
+  searchQuery: string;
+  onClearSearch?: () => void;
+  transactions: Transaction[];
+}
 
-  // Filter transactions based on search query and filter type
-  const filteredTransactions = allTransactions.filter((transaction) => {
-    const matchesSearch = searchQuery === '' || 
+const TransactionTable: FunctionComponent<TransactionTableProps> = ({ searchQuery, onClearSearch, transactions }) => {
+  // Filter transactions based on search query
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearch = searchQuery === '' ||
       transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       transaction.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
       transaction.id.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = filterType === 'all' || transaction.type === filterType;
-    
-    return matchesSearch && matchesFilter;
+
+    return matchesSearch;
   });
 
   const getStatusColor = (status: string) => {
@@ -132,18 +96,14 @@ const TransactionTable: FunctionComponent<TransactionTableProps> = ({ searchQuer
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M21 21L15 15M17 10C17 13.3137 14.3137 16 11 16C7.68629 16 5 13.3137 5 10C5 6.68629 7.68629 4 11 4C14.3137 4 17 6.68629 17 10Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 21L15 15M17 10C17 13.3137 14.3137 16 11 16C7.68629 16 5 13.3137 5 10C5 6.68629 7.68629 4 11 4C14.3137 4 17 6.68629 17 10Z" stroke="#A684FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <div className="text-center space-y-2">
                       <h3 className="text-lg font-semibold text-white">No transactions found</h3>
                       <p className="text-sm text-gray-400">
-                        {searchQuery && filterType !== 'all' 
-                          ? `No transactions found matching "${searchQuery}" in ${filterType} type`
-                          : searchQuery 
+                        {searchQuery
                           ? `No transactions found matching "${searchQuery}"`
-                          : filterType !== 'all'
-                          ? `No ${filterType} transactions found`
                           : 'No transactions available'
                         }
                       </p>
@@ -156,7 +116,7 @@ const TransactionTable: FunctionComponent<TransactionTableProps> = ({ searchQuer
                           className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-400/30 text-purple-300 text-sm font-medium hover:bg-purple-500/30 hover:border-purple-400/50 transition-colors"
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                           Clear Search
                         </button>

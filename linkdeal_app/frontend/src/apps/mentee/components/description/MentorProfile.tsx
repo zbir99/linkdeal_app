@@ -1,4 +1,4 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useState } from 'react';
 
 
 
@@ -55,15 +55,20 @@ const MentorProfile: FunctionComponent<MentorProfileProps> = ({
   skills,
   reviewList
 }) => {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="rounded-2xl bg-white bg-opacity-5 border border-white border-opacity-20 backdrop-blur-md w-full lg:w-[90%] h-auto flex flex-col items-start pt-8 pb-8 px-6 sm:px-8 gap-10 lg:gap-12 mx-auto">
       {/* Header Section */}
       <div className="w-full flex flex-col gap-6 sm:flex-row sm:items-center">
-        {profilePicture ? (
+        {profilePicture && !imageError ? (
           <img
             src={profilePicture}
             alt={name}
             className="h-24 w-24 rounded-full object-cover hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50"
+            onError={() => setImageError(true)}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <div className="h-24 w-24 rounded-full bg-[#7008E7] flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50">

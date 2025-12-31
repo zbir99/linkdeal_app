@@ -449,7 +449,20 @@ const MentorList: FunctionComponent<MentorListProps> = ({ searchTerm, selectedCa
                     <img
                       src={mentor.profile_picture_url || mentor.social_picture_url || ''}
                       alt={mentor.full_name || 'Mentor'}
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
                       className="w-14 h-14 rounded-full object-cover hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50"
+                      onError={(e) => {
+                        // Hide broken image and show initials fallback
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const initialsDiv = document.createElement('div');
+                          initialsDiv.className = 'w-14 h-14 rounded-full bg-[#7008E7] flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50';
+                          initialsDiv.innerHTML = `<span class="text-white text-lg font-semibold">${getInitials(mentor.full_name)}</span>`;
+                          parent.insertBefore(initialsDiv, e.currentTarget);
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-[#7008E7] flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-[#7008E7]/50">

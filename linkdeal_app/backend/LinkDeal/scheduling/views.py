@@ -128,7 +128,7 @@ class PublicMentorAvailabilityView(APIView):
     """
     GET /scheduling/mentors/<id>/availability/
     Get public availability for a mentor (for booking).
-    Filters out time slots that are already booked.
+    Returns per-hour availability, filtering out already-booked time slots.
     """
     permission_classes = [AllowAny]
 
@@ -167,54 +167,70 @@ class PublicMentorAvailabilityView(APIView):
         
         # Get existing sessions for this mentor on this date
         # Only consider active sessions (pending, confirmed, in_progress)
-        booked_sessions = Session.objects.filter(
+        booked_sessions = list(Session.objects.filter(
             mentor=mentor,
             scheduled_at__date=target_date,
             status__in=['pending', 'confirmed', 'in_progress']
-        )
+        ))
         
-        # Build list of available slots, excluding booked time ranges
-        available_slots = []
+        # Build per-hour availability slots
+        # This generates individual hourly slots from each availability range
+        hourly_slots = []
         
         for slot in availability_queryset:
-            slot_start = datetime.combine(target_date, slot.start_time)
-            slot_end = datetime.combine(target_date, slot.end_time)
+            start_hour = slot.start_time.hour
+            end_hour = slot.end_time.hour
             
-            # Make timezone aware if needed
-            if timezone.is_naive(slot_start):
-                slot_start = timezone.make_aware(slot_start)
-            if timezone.is_naive(slot_end):
-                slot_end = timezone.make_aware(slot_end)
-            
-            # Check if this slot overlaps with any booked session
-            is_available = True
-            blocking_session = None
-            
-            for session in booked_sessions:
-                session_end = session.scheduled_at + timedelta(minutes=session.duration_minutes)
+            # Generate individual hourly slots (e.g., 18:00-22:00 becomes 18:00, 19:00, 20:00, 21:00)
+            for hour in range(start_hour, end_hour):
+                # Create datetime for this specific hour
+                slot_start = timezone.make_aware(
+                    datetime.combine(target_date, datetime.min.time().replace(hour=hour))
+                )
+                slot_end = slot_start + timedelta(hours=1)
                 
-                # Check overlap: slot overlaps with session if:
-                # slot_start < session_end AND slot_end > session_start
-                if slot_start < session_end and slot_end > session.scheduled_at:
-                    is_available = False
-                    blocking_session = session
-                    break
-            
-            available_slots.append({
-                'day_of_week': slot.day_of_week,
-                'day_name': slot.get_day_of_week_display(),
-                'start_time': slot.start_time.strftime('%H:%M'),
-                'end_time': slot.end_time.strftime('%H:%M'),
-                'is_available': is_available,
-                'booked_until': session_end.strftime('%H:%M') if blocking_session else None
-            })
+                # Check if this specific hour overlaps with any booked session
+                is_available = True
+                blocking_session = None
+                
+                for session in booked_sessions:
+                    s_start = session.scheduled_at
+                    s_end = session.scheduled_at + timedelta(minutes=session.duration_minutes)
+                    
+                    # 1. Strict Check
+                    if slot_start < s_end and slot_end > s_start:
+                        is_available = False
+                        blocking_session = session
+                        break
+                    
+                    # 2. Fuzzy Check (+/- 1h) for Timezone shifts
+                    # Shift +1h
+                    if slot_start < (s_end + timedelta(hours=1)) and slot_end > (s_start + timedelta(hours=1)):
+                        is_available = False
+                        blocking_session = session
+                        break
+                        
+                    # Shift -1h
+                    if slot_start < (s_end - timedelta(hours=1)) and slot_end > (s_start - timedelta(hours=1)):
+                        is_available = False
+                        blocking_session = session
+                        break
+                
+                hourly_slots.append({
+                    'day_of_week': slot.day_of_week,
+                    'day_name': slot.get_day_of_week_display(),
+                    'start_time': f'{hour:02d}:00',
+                    'end_time': f'{hour + 1:02d}:00',
+                    'is_available': is_available,
+                    'booked_until': (blocking_session.scheduled_at + timedelta(minutes=blocking_session.duration_minutes)).strftime('%H:%M') if blocking_session else None
+                })
         
         return Response({
             'date': target_date.isoformat(),
             'mentor_id': str(mentor_id),
-            'slots': available_slots,
-            'total_slots': len(available_slots),
-            'available_slots': sum(1 for s in available_slots if s['is_available'])
+            'slots': hourly_slots,
+            'total_slots': len(hourly_slots),
+            'available_slots': sum(1 for s in hourly_slots if s['is_available'])
         })
 
 

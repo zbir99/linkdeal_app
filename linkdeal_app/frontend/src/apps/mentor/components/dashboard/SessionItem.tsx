@@ -42,8 +42,15 @@ const SessionItem: FunctionComponent<SessionItemProps> = ({ id, initials, name, 
             referrerPolicy="no-referrer"
             className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0 rounded-full object-cover"
             onError={(e) => {
-              // On error, hide the image and show initials instead
-              (e.target as HTMLImageElement).style.display = 'none';
+              e.currentTarget.style.display = 'none';
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'h-10 w-10 md:h-12 md:w-12 flex-shrink-0 rounded-full flex items-center justify-center text-sm md:text-base font-semibold text-white';
+                fallbackDiv.style.backgroundColor = '#7008E7';
+                fallbackDiv.textContent = initials;
+                parent.insertBefore(fallbackDiv, e.currentTarget);
+              }
             }}
           />
         ) : (

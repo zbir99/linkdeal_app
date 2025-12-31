@@ -20,6 +20,7 @@ interface MentorProfileData {
 
 const Profile: FunctionComponent = () => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -315,8 +316,15 @@ const Profile: FunctionComponent = () => {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full bg-[#7008E7] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {avatarImage ? (
-                      <img src={avatarImage} alt="Profile" className="w-full h-full object-cover" />
+                    {avatarImage && !imageError ? (
+                      <img
+                        src={avatarImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <span className="text-3xl text-white font-inter">{getInitials(fullName)}</span>
                     )}

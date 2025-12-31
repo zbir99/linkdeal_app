@@ -2,6 +2,7 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/auth';
 import api from '@/services/api';
+import { useUnreadCount } from '@/hooks/useNotifications';
 
 interface MenteeProfile {
   full_name?: string;
@@ -16,6 +17,7 @@ const WelcomeHeader: FunctionComponent = () => {
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
   const [imageLoadError, setImageLoadError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { count: unreadCount } = useUnreadCount();
 
   useEffect(() => {
     // Fetch mentee profile data
@@ -109,7 +111,9 @@ const WelcomeHeader: FunctionComponent = () => {
             <path d="M10 0V0.8H26V0V-0.8H10V0ZM36 10H35.2V26H36H36.8V10H36ZM26 36V35.2H10V36V36.8H26V36ZM0 26H0.8V10H0H-0.8V26H0ZM10 36V35.2C4.91898 35.2 0.8 31.081 0.8 26H0H-0.8C-0.8 31.9647 4.03533 36.8 10 36.8V36ZM36 26H35.2C35.2 31.081 31.081 35.2 26 35.2V36V36.8C31.9647 36.8 36.8 31.9647 36.8 26H36ZM26 0V0.8C31.081 0.8 35.2 4.91898 35.2 10H36H36.8C36.8 4.03533 31.9647 -0.8 26 -0.8V0ZM10 0V-0.8C4.03533 -0.8 -0.8 4.03533 -0.8 10H0H0.8C0.8 4.91898 4.91898 0.8 10 0.8V0Z" fill="white" fillOpacity="0.1" mask="url(#path-1-inside-1_161_8476)" />
             <path d="M16.5566 25.5C16.7029 25.7533 16.9133 25.9637 17.1667 26.11C17.42 26.2563 17.7074 26.3333 18 26.3333C18.2925 26.3333 18.5799 26.2563 18.8333 26.11C19.0866 25.9637 19.297 25.7533 19.4433 25.5" stroke="#D1D5DC" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M10.7177 20.772C10.6089 20.8913 10.537 21.0397 10.5109 21.1991C10.4849 21.3585 10.5057 21.522 10.5708 21.6698C10.636 21.8176 10.7427 21.9433 10.8779 22.0316C11.0132 22.1198 11.1712 22.1669 11.3327 22.167H24.6661C24.8276 22.167 24.9856 22.1202 25.1209 22.0321C25.2563 21.944 25.3631 21.8184 25.4285 21.6708C25.4938 21.5231 25.5148 21.3596 25.4889 21.2001C25.4631 21.0407 25.3914 20.8923 25.2827 20.7728C24.1744 19.6303 22.9994 18.4162 22.9994 14.667C22.9994 13.3409 22.4726 12.0691 21.5349 11.1315C20.5972 10.1938 19.3255 9.66699 17.9994 9.66699C16.6733 9.66699 15.4015 10.1938 14.4639 11.1315C13.5262 12.0691 12.9994 13.3409 12.9994 14.667C12.9994 18.4162 11.8236 19.6303 10.7177 20.772Z" stroke="#D1D5DC" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M23.1992 8.7998C23.1992 6.59067 24.9901 4.7998 27.1992 4.7998C29.4084 4.7998 31.1992 6.59067 31.1992 8.7998C31.1992 11.0089 29.4084 12.7998 27.1992 12.7998C24.9901 12.7998 23.1992 11.0089 23.1992 8.7998Z" fill="#8E51FF" />
+            {unreadCount > 0 && (
+              <path d="M23.1992 8.7998C23.1992 6.59067 24.9901 4.7998 27.1992 4.7998C29.4084 4.7998 31.1992 6.59067 31.1992 8.7998C31.1992 11.0089 29.4084 12.7998 27.1992 12.7998C24.9901 12.7998 23.1992 11.0089 23.1992 8.7998Z" fill="#8E51FF" />
+            )}
           </svg>
         </button>
 

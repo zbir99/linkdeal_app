@@ -27,7 +27,6 @@ const countries = [
     'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
 ];
 const languages = ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Swedish', 'Norwegian', 'Danish', 'Finnish', 'Polish', 'Russian', 'Chinese', 'Japanese', 'Korean', 'Arabic', 'Hindi'];
-const roles = ['Student', 'Professional', 'Entrepreneur', 'Career Changer', 'Job Seeker', 'Researcher', 'Other'];
 const fields = ['Web Development', 'Mobile Development', 'Data Science', 'Machine Learning', 'UI/UX Design', 'Cybersecurity', 'Cloud Computing', 'DevOps', 'Blockchain', 'Game Development', 'Digital Marketing', 'Business', 'Finance', 'Other'];
 
 // Map display names to backend-expected values
@@ -44,7 +43,6 @@ const roleToBackendValue: Record<string, string> = {
 export const Information = (): JSX.Element => {
     const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
     const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
-    const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
     const [fieldDropdownOpen, setFieldDropdownOpen] = useState(false);
     const [selectedCountry, setSelectedCountry] = useState('');
     const [selectedField, setSelectedField] = useState('');
@@ -58,12 +56,10 @@ export const Information = (): JSX.Element => {
 
     const countryDropdownRef = useRef<HTMLDivElement>(null);
     const languageDropdownRef = useRef<HTMLDivElement>(null);
-    const roleDropdownRef = useRef<HTMLDivElement>(null);
     const fieldDropdownRef = useRef<HTMLDivElement>(null);
     const countryDropdownMobileRef = useRef<HTMLDivElement>(null);
     const languageDropdownMobileRef = useRef<HTMLDivElement>(null);
     const fieldDropdownMobileRef = useRef<HTMLDivElement>(null);
-    const roleDropdownMobileRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
     const { signupData, updateSignupData } = useMenteeSignup();
@@ -248,10 +244,6 @@ export const Information = (): JSX.Element => {
                 (languageDropdownRef.current && languageDropdownRef.current.contains(target)) ||
                 (languageDropdownMobileRef.current && languageDropdownMobileRef.current.contains(target));
 
-            const isRoleTarget =
-                (roleDropdownRef.current && roleDropdownRef.current.contains(target)) ||
-                (roleDropdownMobileRef.current && roleDropdownMobileRef.current.contains(target));
-
             const isFieldTarget =
                 (fieldDropdownRef.current && fieldDropdownRef.current.contains(target)) ||
                 (fieldDropdownMobileRef.current && fieldDropdownMobileRef.current.contains(target));
@@ -262,9 +254,6 @@ export const Information = (): JSX.Element => {
             }
             if (!isLanguageTarget) {
                 setLanguageDropdownOpen(false);
-            }
-            if (!isRoleTarget) {
-                setRoleDropdownOpen(false);
             }
             if (!isFieldTarget) {
                 setFieldDropdownOpen(false);
@@ -281,27 +270,18 @@ export const Information = (): JSX.Element => {
     const handleCountryDropdownClick = () => {
         setCountryDropdownOpen(!countryDropdownOpen);
         setLanguageDropdownOpen(false);
-        setRoleDropdownOpen(false);
     };
 
     const handleLanguageDropdownClick = () => {
         setLanguageDropdownOpen(!languageDropdownOpen);
         setCountryDropdownOpen(false);
-        setRoleDropdownOpen(false);
     };
 
-    const handleRoleDropdownClick = () => {
-        setRoleDropdownOpen(!roleDropdownOpen);
-        setCountryDropdownOpen(false);
-        setLanguageDropdownOpen(false);
-        setFieldDropdownOpen(false);
-    };
 
     const handleFieldDropdownClick = () => {
         setFieldDropdownOpen(!fieldDropdownOpen);
         setCountryDropdownOpen(false);
         setLanguageDropdownOpen(false);
-        setRoleDropdownOpen(false);
     };
 
     // Image upload handlers

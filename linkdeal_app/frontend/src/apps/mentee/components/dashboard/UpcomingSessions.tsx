@@ -174,6 +174,16 @@ const UpcomingSessions: FunctionComponent = () => {
                       crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                       className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full object-cover shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const fallbackDiv = document.createElement('div');
+                          fallbackDiv.className = 'w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-[#7008E7] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base shrink-0';
+                          fallbackDiv.textContent = getInitials(mentorName);
+                          parent.insertBefore(fallbackDiv, e.currentTarget);
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-[#7008E7] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-base shrink-0">
