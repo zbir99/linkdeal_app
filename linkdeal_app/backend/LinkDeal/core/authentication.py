@@ -336,6 +336,17 @@ class Auth0JWTAuthentication(BaseAuthentication):
                 # Return and let the view handle this - don't raise exception
                 return
             
+            # Auto-create AppUser for admin/super_admin roles (they don't need mentor/mentee profile)
+            if auth0_user.role in ("admin", "super_admin"):
+                logger.info(f"Auto-creating AppUser for admin: {auth0_user.email} ({auth0_user.auth0_id})")
+                app_user = AppUser.objects.create(
+                    auth0_id=auth0_user.auth0_id,
+                    email=auth0_user.email,
+                    role=auth0_user.role,
+                )
+                logger.info(f"Created admin AppUser: {app_user.email}")
+                return
+            
             # No existing account - registration required
             raise AuthenticationFailed(
                 "Account not found. Please complete registration first."
