@@ -268,6 +268,7 @@ class AuthService {
     authUrl.searchParams.set('audience', AUTH0_AUDIENCE);
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('connection', provider); // google-oauth2 or linkedin
+    authUrl.searchParams.set('prompt', 'select_account'); // Force account picker to show
 
     // Redirect to Auth0
     window.location.href = authUrl.toString();
