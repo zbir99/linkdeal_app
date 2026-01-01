@@ -86,8 +86,8 @@ Return ONLY valid JSON with these fields:
             
             # Add offer to recommend after enough messages
             system_prompt = cls.CAREER_COACH_SYSTEM_PROMPT
-            if message_count >= 3:
-                system_prompt += "\n\nYou can now offer to recommend mentors if appropriate."
+            if message_count >= 4:
+                system_prompt += "\n\nYou should now offer to recommend mentors if you have enough information about their goals and skills."
             
             response = client.chat.completions.create(
                 model=model,
@@ -96,8 +96,7 @@ Return ONLY valid JSON with these fields:
                     *[{"role": m["role"], "content": m["content"]} for m in messages]
                 ],
                 temperature=0.8,
-                max_tokens=300,
-                timeout=25.0  # 25 second timeout to avoid broken pipe
+                max_tokens=300
             )
             
             return response.choices[0].message.content.strip()

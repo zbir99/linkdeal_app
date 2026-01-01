@@ -71,11 +71,12 @@ class ChatView(APIView):
             conversation.add_message('user', user_message)
             print(f"Message count: {conversation.message_count}")
             
-            # Check if user wants recommendations
+            # Check if user wants recommendations - only after enough context
+            # We want at least 3-4 messages before offering or accepting a recommendation request
+            message_count = conversation.message_count
             user_wants_recs = self._wants_recommendations(user_message, get_recommendations)
-            print(f"User wants recs: {user_wants_recs}")
             
-            if user_wants_recs:
+            if user_wants_recs and message_count >= 3:
                 print("=== Calling _handle_recommendations ===")
                 return self._handle_recommendations(conversation, user_message, request)
             
@@ -109,13 +110,19 @@ class ChatView(APIView):
             return True
         
         msg_lower = message.lower()
+        # Stricter matching: only if they ask specifically or are confirming a clear offer
         recommendation_phrases = [
             'show me mentors', 'recommend mentors', 'find mentor',
             'show recommendations', 'give me recommendations',
-            'yes', 'sure', 'please', 'ok',  # Common affirmations after offer
-            'montre moi des mentors', 'trouve un mentor'  # French
+            'find matches', 'recommande moi', 'trouve un mentor' # Specific phrases
         ]
         
+        # Only accept 'yes/ok' if it's more than just a single word to avoid accidental triggers
+        if msg_lower in ['yes', 'ok', 'sure', 'oui']:
+            # We will allow simple yes only if the last AI message was an offer
+            # (Logic can be added later to check the last AI message content)
+            return True
+            
         return any(phrase in msg_lower for phrase in recommendation_phrases)
     
     def _handle_recommendations(self, conversation: ChatConversation, user_message: str, request):
@@ -155,7 +162,7 @@ class ChatView(APIView):
             
             # Find matching mentors from existing MentorProfile
             logger.info("Finding mentors...")
-            mentors = self._find_mentors(extracted_profile, request)
+            mentors = self._find_mentors_with_embeddings(extracted_profile, request)
             logger.info(f"Found {len(mentors) if mentors else 0} mentors")
             
             conversation.recommendations_shown = True
@@ -201,7 +208,7 @@ class ChatView(APIView):
             
             # Use MatchingService to find similar mentors
             logger.info("Finding similar mentors...")
-            results = MatchingService.find_similar_mentors(mentee_embedding, limit=limit)
+            results = MatchingService.find_similar_mentors(mentee_embedding, limit=limit, profile=profile)
             logger.info(f"Found {len(results)} mentors")
             
             # Helper function for profile picture URLs

@@ -1,7 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from django.db.models import Sum
+from django.db import connection
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
@@ -9,6 +11,35 @@ from decimal import Decimal
 from core.models import PlatformSettings
 from accounts.permissions import IsAuthenticatedAuth0, IsAdmin
 from accounts.models import AppUser, MentorProfile, MenteeProfile
+
+
+class HealthCheckView(APIView):
+    """
+    Health check endpoint for Docker and load balancers.
+    Returns 200 if the service is healthy.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []  # No auth required
+
+    def get(self, request):
+        """Check if the application is healthy."""
+        health_status = {
+            "status": "healthy",
+            "service": "linkdeal-backend",
+            "version": "1.0.0",
+        }
+        
+        # Check database connection
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            health_status["database"] = "connected"
+        except Exception as e:
+            health_status["database"] = "disconnected"
+            health_status["status"] = "unhealthy"
+            return Response(health_status, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        return Response(health_status, status=status.HTTP_200_OK)
 
 
 class PlatformSettingsView(APIView):

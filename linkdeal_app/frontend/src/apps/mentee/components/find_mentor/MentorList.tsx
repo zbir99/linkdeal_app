@@ -472,7 +472,7 @@ const MentorList: FunctionComponent<MentorListProps> = ({ searchTerm, selectedCa
                   <div className="flex-1">
                     <h3 className="text-white text-lg font-inter leading-7">{mentor.full_name || 'Unknown'}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      {(mentor.languages || []).slice(0, 3).map((language, index) => (
+                      {((Array.isArray(mentor.languages) ? mentor.languages : (typeof mentor.languages === 'string' ? mentor.languages.split(',').map(l => l.trim()).filter(Boolean) : []))).slice(0, 3).map((language, index) => (
                         <div key={index} className="w-6 h-6 rounded-full overflow-hidden border border-white/20 hover:scale-110 transition-all duration-300 cursor-pointer hover:shadow-lg flex items-center justify-center">
                           {getLanguageFlag(language)}
                         </div>

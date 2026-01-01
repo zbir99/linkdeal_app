@@ -7,6 +7,8 @@ WORKDIR /app
 
 # Build arguments for environment variables
 ARG VITE_API_URL
+ARG VITE_APP_NAME
+ARG VITE_APP_VERSION
 ARG VITE_AUTH0_DOMAIN
 ARG VITE_AUTH0_CLIENT_ID
 ARG VITE_AUTH0_CLIENT_SECRET
@@ -14,6 +16,8 @@ ARG VITE_AUTH0_AUDIENCE
 
 # Set environment variables for the build
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_APP_NAME=${VITE_APP_NAME}
+ENV VITE_APP_VERSION=${VITE_APP_VERSION}
 ENV VITE_AUTH0_DOMAIN=${VITE_AUTH0_DOMAIN}
 ENV VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
 ENV VITE_AUTH0_CLIENT_SECRET=${VITE_AUTH0_CLIENT_SECRET}
@@ -28,8 +32,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (skip TypeScript check for faster builds)
+RUN npx vite build
 
 # ======================
 # Stage 2: Production

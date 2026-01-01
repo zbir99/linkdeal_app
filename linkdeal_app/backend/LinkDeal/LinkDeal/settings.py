@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # Application definition
 
@@ -240,13 +240,13 @@ if not DEBUG:
 # =======================
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
-USE_MOCK_AI = os.getenv('USE_MOCK_AI', 'True').lower() == 'true'  # Default to mock mode
+USE_MOCK_AI = os.getenv('USE_MOCK_AI', 'True').lower() == 'true'
 
 # =======================
-# Embedding Configuration
+# Embedding Configuration (OpenAI)
 # =======================
-SENTENCE_EMBEDDING_MODEL = os.getenv('SENTENCE_EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')
-EMBEDDING_DIMENSION = int(os.getenv('EMBEDDING_DIMENSION', '384'))
+EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
+EMBEDDING_DIMENSION = int(os.getenv('EMBEDDING_DIMENSION', '1536'))
 
 # Whereby API Key
 WHEREBY_API_KEY = os.getenv('WHEREBY_API_KEY', '')
