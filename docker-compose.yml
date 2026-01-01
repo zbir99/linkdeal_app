@@ -88,6 +88,10 @@ services:
 
       # Frontend URL (for CORS and email links)
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3102}
+
+      # Django Superuser (auto-created on startup)
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@linkdeal.com}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-Admin2026}
     volumes:
       - linkdeal-media:/app/media
       - linkdeal-static:/app/staticfiles

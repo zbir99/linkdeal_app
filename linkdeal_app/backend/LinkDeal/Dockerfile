@@ -37,8 +37,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY . .
 
-# Create media directory and set permissions
+# Create media directory and set permissions, make entrypoint executable
 RUN mkdir -p /app/media /app/staticfiles && \
+    chmod +x /app/entrypoint.sh && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
@@ -48,8 +49,8 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/api/health/ || exit 1
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", "--timeout", "120", "LinkDeal.wsgi:application"]
+# Run entrypoint script (migrations + superuser + gunicorn)
+CMD ["/bin/bash", "/app/entrypoint.sh"]
