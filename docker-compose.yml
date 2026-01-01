@@ -119,7 +119,7 @@ services:
     depends_on:
       - linkdeal-backend
     ports:
-      - "5173:80"
+      - "3102:80"
     networks:
       - linkdeal-network
     environment:
