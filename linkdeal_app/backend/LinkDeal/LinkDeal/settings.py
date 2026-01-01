@@ -225,6 +225,10 @@ CORS_ALLOW_CREDENTIALS = True
 # Security (production hardening)
 # =======================
 if not DEBUG:
+    # Trust the X-Forwarded-Proto header from the reverse proxy
+    # This tells Django the request came via HTTPS even though internal communication is HTTP
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
