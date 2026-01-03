@@ -58,6 +58,7 @@ def send_new_booking_email(mentor_email, mentor_name, session_date, mentee_name)
     """
     Send email to mentor about a new paid booking.
     """
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lynvia.fojas.ai')
     subject = "📅 New Session Booked & Paid - LinkDeal"
     message = f"Hello {mentor_name},\n\nYou have a new confirmed session with {mentee_name} on {session_date}.\nThe payment is secured."
     
@@ -87,7 +88,7 @@ def send_new_booking_email(mentor_email, mentor_name, session_date, mentee_name)
         </p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="https://linkdeal.com/dashboard" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
+            <a href="{frontend_url}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
                 View Session
             </a>
         </div>

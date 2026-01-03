@@ -79,6 +79,7 @@ def send_status_change_email(
         ban_reason: Optional reason for ban (only used when status="banned")
     """
     user_type_display = "Mentor" if user_type == "mentor" else "Mentee"
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lynvia.fojas.ai')
     
     # Subject and message content based on status
     if status == "approved":
@@ -115,7 +116,7 @@ LinkDeal Team
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="https://linkdeal.com/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
+                <a href="{frontend_url}/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
                     🚀 Start Exploring
                 </a>
             </div>
@@ -250,7 +251,7 @@ LinkDeal Team
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="https://linkdeal.com/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
+                <a href="{frontend_url}/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
                     🚀 Log In Now
                 </a>
             </div>
@@ -296,6 +297,7 @@ def send_welcome_email(
         user_type: Type of user ("mentee" or "mentor")
     """
     user_type_display = "Mentor" if user_type == "mentor" else "Mentee"
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lynvia.fojas.ai')
     
     if user_type == "mentor":
         subject = "🎉 Welcome to LinkDeal - Your Mentor Application is Under Review"
@@ -417,7 +419,7 @@ LinkDeal Team
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="https://linkdeal.com/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
+                <a href="{frontend_url}/login" style="display: inline-block; background: linear-gradient(135deg, #7008E7 0%, #8E51FF 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(112, 8, 231, 0.3);">
                     🚀 Start Exploring
                 </a>
             </div>
