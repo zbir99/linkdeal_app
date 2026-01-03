@@ -6,10 +6,10 @@ export const CallHeader: FunctionComponent = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 md:gap-4">
         <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1">
           <h1 className="text-sm sm:text-base md:text-lg font-semibold text-white truncate">
-            Session with Dr. Emily Chen
+            Video call LinkDeal
           </h1>
           <p className="text-xs sm:text-sm text-white/60 font-arimo">
-            45:23 remaining
+            Lynvia
           </p>
         </div>
       </div>
