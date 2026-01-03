@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db.models import Q
+from django.db.models import Q, Avg
 
 from .models import ChatConversation
 from .services import LLMService
@@ -236,6 +236,13 @@ class ChatView(APIView):
                     explanation = MatchingService.generate_explanation(profile, mentor, similarity)
                     logger.info(f"Explanation generated: {explanation[:50]}...")
                     
+                    # Get rating and session count from Session model
+                    from scheduling.models import Session
+                    mentor_sessions = Session.objects.filter(mentor=mentor)
+                    completed_sessions = mentor_sessions.filter(status='completed').count()
+                    rated_sessions = mentor_sessions.filter(rating__isnull=False)
+                    avg_rating = rated_sessions.aggregate(avg=Avg('rating'))['avg']
+                    
                     mentor_list.append({
                         'id': str(mentor.id),
                         'name': mentor.full_name,
@@ -248,7 +255,9 @@ class ChatView(APIView):
                         'similarity_score': similarity,
                         'confidence': confidence,
                         'explanation': explanation,
-                        'match_reason': explanation  # For backward compatibility
+                        'match_reason': explanation,  # For backward compatibility
+                        'rating': round(avg_rating, 1) if avg_rating else None,
+                        'sessions_count': completed_sessions
                     })
                     logger.info(f"Mentor {mentor.full_name} added to list")
                 except Exception as e:
@@ -313,6 +322,13 @@ class ChatView(APIView):
                 else:
                     explanation = f"{mentor.full_name} is an experienced mentor who can help you develop your skills and reach your career goals."
                 
+                # Get rating and session count from Session model
+                from scheduling.models import Session
+                mentor_sessions = Session.objects.filter(mentor=mentor)
+                completed_sessions = mentor_sessions.filter(status='completed').count()
+                rated_sessions = mentor_sessions.filter(rating__isnull=False)
+                avg_rating = rated_sessions.aggregate(avg=Avg('rating'))['avg']
+                
                 mentor_list.append({
                     'id': str(mentor.id),
                     'name': mentor.full_name,
@@ -325,7 +341,9 @@ class ChatView(APIView):
                     'similarity_score': round(similarity, 2),
                     'confidence': confidence,
                     'explanation': explanation,
-                    'match_reason': explanation
+                    'match_reason': explanation,
+                    'rating': round(avg_rating, 1) if avg_rating else None,
+                    'sessions_count': completed_sessions
                 })
                 print(f"Added mentor: {mentor.full_name}")
             
@@ -340,6 +358,8 @@ class ChatView(APIView):
     
     def _get_fallback_mentors(self, request, limit: int = 3):
         """Get fallback mentors when no matches found."""
+        from scheduling.models import Session
+        
         # Use MatchingService fallback
         results = MatchingService._fallback_matching(limit)
         
@@ -351,6 +371,13 @@ class ChatView(APIView):
         mentor_list = []
         for result in results:
             mentor = result['mentor']
+            
+            # Get rating and session count
+            mentor_sessions = Session.objects.filter(mentor=mentor)
+            completed_sessions = mentor_sessions.filter(status='completed').count()
+            rated_sessions = mentor_sessions.filter(rating__isnull=False)
+            avg_rating = rated_sessions.aggregate(avg=Avg('rating'))['avg']
+            
             mentor_list.append({
                 'id': str(mentor.id),
                 'name': mentor.full_name,
@@ -362,7 +389,9 @@ class ChatView(APIView):
                 'profile_picture_url': get_profile_picture_url(mentor),
                 'similarity_score': result['similarity_score'],
                 'confidence': result['confidence'],
-                'match_reason': "Top-rated mentor on LinkDeal"
+                'match_reason': "Top-rated mentor on LinkDeal",
+                'rating': round(avg_rating, 1) if avg_rating else None,
+                'sessions_count': completed_sessions
             })
         
         return mentor_list
